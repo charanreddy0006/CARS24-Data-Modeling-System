@@ -1,0 +1,16 @@
+erDiagram
+  CITY ||--o{ CUSTOMER_ADDRESS : locates
+  CUSTOMER ||--o{ CUSTOMER_CONTACT : has
+  CUSTOMER ||--o{ CUSTOMER_ADDRESS : has
+  VEHICLE_BRAND ||--o{ VEHICLE_MODEL : defines
+  VEHICLE_MODEL ||--o{ VEHICLE_VARIANT : offers
+  VEHICLE_MODEL ||--o{ VEHICLE : classifies
+  VEHICLE_VARIANT o|--o{ VEHICLE : specifies
+  CUSTOMER ||--o{ VEHICLE : current_owner
+  VEHICLE ||--o{ VEHICLE_REGISTRATION : registered_as
+  VEHICLE ||--o{ VEHICLE_OWNERSHIP_HISTORY : ownership
+  CUSTOMER ||--o{ VEHICLE_OWNERSHIP_HISTORY : owner
+  CUSTOMER ||--o{ VEHICLE_SUBMISSION : submits
+  VEHICLE ||--o{ VEHICLE_SUBMISSION : submitted
+  CITY ||--o{ BRANCH : contains
+  BRANCH ||--o{ VEHICLE_SUBMISSION : intake

@@ -1,0 +1,14 @@
+erDiagram
+  VEHICLE ||--o{ INSPECTION : inspected
+  VEHICLE_SUBMISSION o|--o{ INSPECTION : schedules
+  EMPLOYEE o|--o{ INSPECTION : performs
+  INSPECTION ||--o| INSPECTION_REPORT : concludes
+  INSPECTION_REPORT ||--o{ INSPECTION_ITEM : details
+  INSPECTION_REPORT ||--o{ DEFECT : records
+  INSPECTION_ITEM o|--o{ DEFECT : categorizes
+  VEHICLE ||--o{ VEHICLE_VALUATION : valued
+  INSPECTION_REPORT o|--o{ VEHICLE_VALUATION : informs
+  EMPLOYEE ||--o{ VEHICLE_VALUATION : assesses
+  VEHICLE_SUBMISSION ||--o{ PURCHASE_OFFER : receives
+  VEHICLE_VALUATION ||--o{ PURCHASE_OFFER : supports
+  CUSTOMER ||--o{ PURCHASE_OFFER : receives

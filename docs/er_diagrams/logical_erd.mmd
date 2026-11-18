@@ -1,0 +1,361 @@
+erDiagram
+  CITY {
+    ID city_id PK
+    Text city_name
+    Code state_code
+    Code country_code
+  }
+  BRANCH {
+    ID branch_id PK
+    ID city_id FK
+    Code branch_code UK
+    Text branch_name
+    Text address_text
+    Code status
+  }
+  EMPLOYEE {
+    ID employee_id PK
+    ID branch_id FK
+    Code employee_code UK
+    Text display_name
+    Date active_from
+    Date active_to
+  }
+  EMPLOYEE_ROLE {
+    ID employee_role_id PK
+    ID employee_id FK
+    Code role_code
+    Timestamp valid_from
+    Timestamp valid_to
+  }
+  CUSTOMER {
+    ID customer_id PK
+    Text display_name
+    Text legal_name
+    Code status
+    Timestamp created_at
+  }
+  CUSTOMER_CONTACT {
+    ID contact_id PK
+    ID customer_id FK
+    Code contact_type
+    Text contact_value
+    Boolean is_verified
+    Timestamp valid_from
+    Timestamp valid_to
+  }
+  CUSTOMER_ADDRESS {
+    ID address_id PK
+    ID customer_id FK
+    ID city_id FK
+    Code address_type
+    Text address_line1
+    Text address_line2
+    Code postal_code
+    Timestamp valid_from
+    Timestamp valid_to
+  }
+  VEHICLE_BRAND {
+    ID brand_id PK
+    Text brand_name UK
+  }
+  VEHICLE_MODEL {
+    ID model_id PK
+    ID brand_id FK
+    Text model_name
+  }
+  VEHICLE_VARIANT {
+    ID variant_id PK
+    ID model_id FK
+    Text variant_name
+  }
+  VEHICLE {
+    ID vehicle_id PK
+    ID model_id FK
+    ID variant_id FK
+    Integer manufacture_year
+    Code vin UK
+    Code engine_number
+    Code fuel_type_code
+    Code transmission_type_code
+    ID current_owner_customer_id FK
+    Code lifecycle_status
+    Timestamp created_at
+  }
+  VEHICLE_REGISTRATION {
+    ID registration_id PK
+    ID vehicle_id FK
+    Code registration_number
+    Code issuing_state_code
+    Date valid_from
+    Date valid_to
+  }
+  VEHICLE_OWNERSHIP_HISTORY {
+    ID ownership_history_id PK
+    ID vehicle_id FK
+    ID customer_id FK
+    Timestamp valid_from
+    Timestamp valid_to
+    Code basis_code
+    Text evidence_reference
+  }
+  VEHICLE_SUBMISSION {
+    ID submission_id PK
+    ID vehicle_id FK
+    ID seller_customer_id FK
+    ID branch_id FK
+    Timestamp submitted_at
+    Code status
+    Timestamp closed_at
+    Text outcome_reason
+  }
+  INSPECTION {
+    ID inspection_id PK
+    ID vehicle_id FK
+    ID submission_id FK
+    ID inspector_employee_id FK
+    Timestamp scheduled_at
+    Timestamp completed_at
+    Code status
+  }
+  INSPECTION_REPORT {
+    ID report_id PK
+    ID inspection_id FK, UK
+    Code outcome_code
+    Text summary
+    Timestamp finalized_at
+  }
+  INSPECTION_ITEM {
+    ID inspection_item_id PK
+    ID report_id FK
+    Code item_code
+    Code outcome_code
+    Text note
+  }
+  DEFECT {
+    ID defect_id PK
+    ID report_id FK
+    ID inspection_item_id FK
+    Code category_code
+    Code severity_code
+    Text description
+    Amount repair_estimate
+    Currency currency_code
+  }
+  VEHICLE_VALUATION {
+    ID valuation_id PK
+    ID vehicle_id FK
+    ID report_id FK
+    ID assessor_employee_id FK
+    Timestamp valued_at
+    Amount amount
+    Currency currency_code
+    Text basis
+    Code status
+  }
+  PURCHASE_OFFER {
+    ID offer_id PK
+    ID submission_id FK
+    ID valuation_id FK
+    ID seller_customer_id FK
+    Timestamp offered_at
+    Timestamp expires_at
+    Amount amount
+    Currency currency_code
+    Code status
+    Timestamp decision_at
+  }
+  PURCHASE_AGREEMENT {
+    ID agreement_id PK
+    ID offer_id FK
+    ID seller_customer_id FK
+    Code agreement_reference UK
+    Timestamp signed_at
+    Code status
+  }
+  VEHICLE_ACQUISITION {
+    ID acquisition_id PK
+    ID agreement_id FK, UK
+    ID vehicle_id FK
+    ID seller_customer_id FK
+    Timestamp acquired_at
+    Amount amount
+    Currency currency_code
+  }
+  INVENTORY {
+    ID inventory_id PK
+    ID vehicle_id FK, UK
+    ID branch_id FK
+    Code location_code
+    Code status
+    Timestamp since_at
+  }
+  INVENTORY_MOVEMENT {
+    ID movement_id PK
+    ID inventory_id FK
+    ID from_branch_id FK
+    Code from_location_code
+    ID to_branch_id FK
+    Code to_location_code
+    Code movement_type
+    ID employee_id FK
+    Timestamp occurred_at
+    Text reason
+  }
+  VEHICLE_LISTING {
+    ID listing_id PK
+    ID vehicle_id FK
+    ID branch_id FK
+    Timestamp listed_at
+    Timestamp closed_at
+    Code status
+    Amount asking_price
+    Currency currency_code
+    Text description
+  }
+  LISTING_IMAGE {
+    ID listing_image_id PK
+    ID listing_id FK
+    URI image_reference
+    Integer display_order
+    Text caption
+  }
+  CUSTOMER_ENQUIRY {
+    ID enquiry_id PK
+    ID listing_id FK
+    ID customer_id FK
+    ID assigned_employee_id FK
+    Code channel_code
+    Timestamp received_at
+    Code status
+    Text message_reference
+  }
+  VEHICLE_RESERVATION {
+    ID reservation_id PK
+    ID listing_id FK
+    ID customer_id FK
+    Timestamp created_at
+    Timestamp expires_at
+    Code status
+    Timestamp released_at
+  }
+  SALES_ORDER {
+    ID order_id PK
+    ID buyer_customer_id FK
+    Timestamp created_at
+    Code status
+    Currency currency_code
+    Timestamp confirmed_at
+    Timestamp completed_at
+    Timestamp cancelled_at
+  }
+  SALES_ORDER_ITEM {
+    ID order_item_id PK
+    ID order_id FK
+    ID vehicle_id FK
+    ID reservation_id FK, UK
+    Amount sale_price
+    Currency currency_code
+  }
+  PAYMENT {
+    ID payment_id PK
+    ID order_id FK
+    Code provider_code
+    Code provider_reference
+    Code payment_method_code
+    Amount amount
+    Currency currency_code
+    Code status
+    Timestamp initiated_at
+    Timestamp settled_at
+  }
+  REFUND {
+    ID refund_id PK
+    ID payment_id FK
+    Code provider_reference
+    Amount amount
+    Currency currency_code
+    Code status
+    Timestamp requested_at
+    Timestamp settled_at
+  }
+  OWNERSHIP_TRANSFER {
+    ID transfer_id PK
+    ID order_item_id FK
+    ID from_customer_id FK
+    ID to_customer_id FK
+    Code status
+    Timestamp submitted_at
+    Timestamp completed_at
+    Code authority_reference
+  }
+  VEHICLE_DELIVERY {
+    ID delivery_id PK
+    ID order_item_id FK
+    ID recipient_customer_id FK
+    ID branch_id FK
+    ID delivery_address_id FK
+    Timestamp scheduled_at
+    Timestamp completed_at
+    Code status
+    Code handover_reference
+  }
+  CITY ||--o{ BRANCH : contains
+  CITY ||--o{ CUSTOMER_ADDRESS : locates
+  BRANCH ||--o{ EMPLOYEE : staffs
+  EMPLOYEE ||--o{ EMPLOYEE_ROLE : assigned
+  CUSTOMER ||--o{ CUSTOMER_CONTACT : has
+  CUSTOMER ||--o{ CUSTOMER_ADDRESS : has
+  VEHICLE_BRAND ||--o{ VEHICLE_MODEL : defines
+  VEHICLE_MODEL ||--o{ VEHICLE_VARIANT : offers
+  VEHICLE_MODEL ||--o{ VEHICLE : classifies
+  VEHICLE_VARIANT o|--o{ VEHICLE : specifies
+  CUSTOMER ||--o{ VEHICLE : current_owner
+  VEHICLE ||--o{ VEHICLE_REGISTRATION : has
+  VEHICLE ||--o{ VEHICLE_OWNERSHIP_HISTORY : ownership
+  CUSTOMER ||--o{ VEHICLE_OWNERSHIP_HISTORY : owns
+  VEHICLE ||--o{ VEHICLE_SUBMISSION : submitted
+  CUSTOMER ||--o{ VEHICLE_SUBMISSION : seller
+  BRANCH ||--o{ VEHICLE_SUBMISSION : intake
+  VEHICLE ||--o{ INSPECTION : inspected
+  VEHICLE_SUBMISSION o|--o{ INSPECTION : schedules
+  EMPLOYEE o|--o{ INSPECTION : inspects
+  INSPECTION ||--o| INSPECTION_REPORT : concludes
+  INSPECTION_REPORT ||--o{ INSPECTION_ITEM : details
+  INSPECTION_REPORT ||--o{ DEFECT : records
+  INSPECTION_ITEM o|--o{ DEFECT : categorized
+  VEHICLE ||--o{ VEHICLE_VALUATION : valued
+  INSPECTION_REPORT o|--o{ VEHICLE_VALUATION : basis
+  EMPLOYEE ||--o{ VEHICLE_VALUATION : assesses
+  VEHICLE_SUBMISSION ||--o{ PURCHASE_OFFER : receives
+  VEHICLE_VALUATION ||--o{ PURCHASE_OFFER : supports
+  CUSTOMER ||--o{ PURCHASE_OFFER : seller
+  PURCHASE_OFFER ||--o{ PURCHASE_AGREEMENT : accepted_as
+  PURCHASE_AGREEMENT ||--o| VEHICLE_ACQUISITION : completes
+  VEHICLE ||--o{ VEHICLE_ACQUISITION : acquired
+  CUSTOMER ||--o{ VEHICLE_ACQUISITION : transferor
+  VEHICLE ||--o| INVENTORY : position
+  BRANCH ||--o{ INVENTORY : holds
+  INVENTORY ||--o{ INVENTORY_MOVEMENT : moves
+  EMPLOYEE o|--o{ INVENTORY_MOVEMENT : records
+  VEHICLE ||--o{ VEHICLE_LISTING : listed
+  BRANCH ||--o{ VEHICLE_LISTING : manages
+  VEHICLE_LISTING ||--o{ LISTING_IMAGE : shows
+  VEHICLE_LISTING ||--o{ CUSTOMER_ENQUIRY : receives
+  CUSTOMER ||--o{ CUSTOMER_ENQUIRY : makes
+  EMPLOYEE o|--o{ CUSTOMER_ENQUIRY : follows_up
+  VEHICLE_LISTING ||--o{ VEHICLE_RESERVATION : held
+  CUSTOMER ||--o{ VEHICLE_RESERVATION : requests
+  CUSTOMER ||--o{ SALES_ORDER : buys
+  SALES_ORDER ||--|{ SALES_ORDER_ITEM : contains
+  VEHICLE ||--o{ SALES_ORDER_ITEM : sold
+  VEHICLE_RESERVATION o|--o| SALES_ORDER_ITEM : converts
+  SALES_ORDER ||--o{ PAYMENT : receives
+  PAYMENT ||--o{ REFUND : refunds
+  SALES_ORDER_ITEM ||--o{ OWNERSHIP_TRANSFER : transfers
+  CUSTOMER ||--o{ OWNERSHIP_TRANSFER : transferor
+  CUSTOMER ||--o{ OWNERSHIP_TRANSFER : transferee
+  SALES_ORDER_ITEM ||--o{ VEHICLE_DELIVERY : delivered
+  CUSTOMER ||--o{ VEHICLE_DELIVERY : recipient
+  BRANCH o|--o{ VEHICLE_DELIVERY : dispatches
+  CUSTOMER_ADDRESS o|--o{ VEHICLE_DELIVERY : destination

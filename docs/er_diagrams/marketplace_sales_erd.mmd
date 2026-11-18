@@ -1,0 +1,23 @@
+erDiagram
+  VEHICLE ||--o{ VEHICLE_LISTING : published_as
+  BRANCH ||--o{ VEHICLE_LISTING : manages
+  VEHICLE_LISTING ||--o{ LISTING_IMAGE : illustrated
+  VEHICLE_LISTING ||--o{ CUSTOMER_ENQUIRY : receives
+  CUSTOMER ||--o{ CUSTOMER_ENQUIRY : enquires
+  EMPLOYEE o|--o{ CUSTOMER_ENQUIRY : follows_up
+  VEHICLE_LISTING ||--o{ VEHICLE_RESERVATION : held
+  CUSTOMER ||--o{ VEHICLE_RESERVATION : requests
+  SALES_ORDER o|--o{ VEHICLE_RESERVATION : converts
+  CUSTOMER ||--o{ SALES_ORDER : buys
+  SALES_ORDER ||--|{ SALES_ORDER_ITEM : contains
+  VEHICLE ||--o{ SALES_ORDER_ITEM : sold
+  VEHICLE_RESERVATION o|--o| SALES_ORDER_ITEM : source
+  SALES_ORDER ||--o{ PAYMENT : paid_by
+  PAYMENT ||--o{ REFUND : refunded
+  SALES_ORDER_ITEM ||--o{ OWNERSHIP_TRANSFER : transfer_case
+  CUSTOMER ||--o{ OWNERSHIP_TRANSFER : transferor
+  CUSTOMER ||--o{ OWNERSHIP_TRANSFER : transferee
+  SALES_ORDER_ITEM ||--o{ VEHICLE_DELIVERY : delivery_attempt
+  CUSTOMER ||--o{ VEHICLE_DELIVERY : recipient
+  BRANCH o|--o{ VEHICLE_DELIVERY : origin
+  CUSTOMER_ADDRESS o|--o{ VEHICLE_DELIVERY : destination

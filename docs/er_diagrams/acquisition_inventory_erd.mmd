@@ -1,0 +1,12 @@
+erDiagram
+  PURCHASE_OFFER ||--o{ PURCHASE_AGREEMENT : accepted_as
+  CUSTOMER ||--o{ PURCHASE_AGREEMENT : signs
+  PURCHASE_AGREEMENT ||--o| VEHICLE_ACQUISITION : completes
+  VEHICLE ||--o{ VEHICLE_ACQUISITION : acquired
+  CUSTOMER ||--o{ VEHICLE_ACQUISITION : transfers
+  VEHICLE ||--o| INVENTORY : position
+  BRANCH ||--o{ INVENTORY : holds
+  INVENTORY ||--o{ INVENTORY_MOVEMENT : movement_history
+  BRANCH o|--o{ INVENTORY_MOVEMENT : origin
+  BRANCH o|--o{ INVENTORY_MOVEMENT : destination
+  EMPLOYEE o|--o{ INVENTORY_MOVEMENT : records
