@@ -11,7 +11,7 @@ The preflight had previously reported a blocked result for Day 2 fixture predica
 
 ## Execution sequence status
 
-The passing preflight was followed by successful Phase 01 and Phase 02 executions. Phase 01/02 counts and status are recorded in `docs/24_day3_synthetic_generation_execution_report.md`. Phases 03-06 and the independent final validator remain unexecuted.
+The passing preflight was followed by successful Phase 01, Phase 02, and Phase 03 executions. Their counts and statuses are recorded in `docs/24_day3_synthetic_generation_execution_report.md`. Phases 04-06 and the independent final validator remain unexecuted.
 
 ## Historical connectivity attempts
 

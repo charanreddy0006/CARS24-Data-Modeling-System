@@ -1,6 +1,6 @@
 # Day 3 offline remediation completion report
 
-> **Later runtime update (2026-11-21):** The offline status below reflects the remediation task at that time. Since then, the operator reports pre-generation checks **PASS**, Phase 01 **COMMITTED / PASS**, and Phase 02 **COMMITTED / PASS**. The previous failed Phase 02 attempt was verified rolled back before the successful rerun. Phases 03-06 and the independent validator remain unexecuted. Current completion status is tracked in `docs/26_day3_completion_report.md`.
+> **Later runtime update (2026-11-22):** The offline status below reflects the remediation task at that time. Since then, the operator reports pre-generation checks **PASS** and Phases 01-03 **COMMITTED / PASS**. Phase 03 counts were independently confirmed and its three relationship checks returned failure_count 0. Its five component counts sum to 681; the script has no aggregate inserted-total field, and the earlier 721 figure was an erroneous aggregate in the supplied execution summary. The earlier failed Phase 02 attempt was verified rolled back. Phases 04-06 and the independent validator remain unexecuted. Current completion status is tracked in `docs/26_day3_completion_report.md`.
 
 **Date:** 2026-11-21
 **Status at time of offline remediation:** **CODE REMEDIATION IMPLEMENTED; DAY 3 REMAINED INCOMPLETE AND BLOCKED**

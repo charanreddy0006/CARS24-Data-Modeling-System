@@ -2,7 +2,7 @@
 
 These are separate SQL scripts for `CARS24DataModelingSystem`. No SQLCMD file inclusion is used.
 
-## Current status (2026-11-21)
+## Current status (2026-11-22)
 
 Day 3 is **IN PROGRESS, NOT COMPLETE**. Runtime progress verified by the operator is:
 
@@ -11,16 +11,18 @@ Day 3 is **IN PROGRESS, NOT COMPLETE**. Runtime progress verified by the operato
 | Pre-generation checks | **PASS** | Readiness checks passed for the target database. |
 | Phase 01 - Customers and staff | **COMMITTED / PASS** | 21 employees, 21 roles, 97 customers, 172 contacts, 122 addresses. |
 | Phase 02 - Catalog and vehicle intake | **COMMITTED / PASS** | 67 vehicles, 67 registrations, 67 ownership-history rows, 67 submissions; zero exact-match skips in all four categories. |
+| Phase 03 - Inspection and valuation | **COMMITTED / PASS** | 62 inspections, 57 reports, 411 checklist items, 99 defects, 52 valuations; zero exact-match skips. Independent count query matched; all three relationship checks had failure_count 0. |
 | Failed Phase 02 attempt | **ROLLED BACK** | Full rollback was verified before the successful Phase 02 rerun. |
-| Phases 03-06 | **NOT EXECUTED** | No runtime results are claimed. |
+| Initial Phase 03 attempt | **FAILED BEFORE INSERTS** | A missing closing parenthesis in the completed-inspection report predicate caused a syntax error; read-only counts showed zero rows in all five target families. The syntax was corrected before the successful run. |
+| Phases 04-06 | **NOT EXECUTED** | No runtime results are claimed. |
 | Independent final validator | **NOT EXECUTED** | No final aggregate validation result is claimed. |
 
-Phase 01 and 02 results are runtime evidence supplied by the operator. The source audits and remediation reports document static review separately. Earlier connection failures from the Codex shell are historical and do not describe the successful normal Windows CMD execution. The successful method was Shared Memory using `sqlcmd -S "lpc:.\SQLEXPRESS" -E -C` under `chakri\chara`. See `docs/23_day3_preflight_execution_report.md`, `docs/24_day3_synthetic_generation_execution_report.md`, and `docs/26_day3_completion_report.md` for execution reporting.
+Phase 01-03 results are operator-reported runtime evidence. The Phase 03 script emits five separate inserted-row counts and no aggregate total; the verified family counts sum to 681. The earlier figure of 721 was an erroneous aggregate in the supplied execution summary. Static source review and runtime evidence are documented separately. Earlier connection failures from the Codex shell are historical and do not describe the successful normal Windows CMD execution. The Shared Memory method was verified for the reported Phase 01/02 runs. See `docs/23_day3_preflight_execution_report.md`, `docs/24_day3_synthetic_generation_execution_report.md`, and `docs/26_day3_completion_report.md` for execution reporting.
 
 ## Before continuing
 
-1. Review the committed Phase 02 output and this execution status. Do not blindly rerun Phases 01 or 02.
-2. Continue with Phase 03 only when ready, then execute Phases 04, 05, and 06 sequentially. Review each phase's result sets and stop after any error, conflict, or failed validation.
+1. Review the committed Phase 03 output and this execution status. Do not blindly rerun Phases 01, 02, or 03.
+2. Continue with Phase 04, then execute Phases 05 and 06 sequentially. Review each phase's result sets and stop after any error, conflict, or failed validation.
 3. Run `10_validate_generated_data.sql` only after all six phases complete successfully. Day 3 remains incomplete until its independent final validator passes.
 4. Do not proceed if readiness is blocked, a fixture group fails, structural counts differ, a deterministic key conflicts, or actual rows exceed the plan unexpectedly. Scripts do not delete excess rows to force targets.
 5. A rerun must reconcile exact payload and lifecycle state. Later phases update earlier cohort state; this package is not a blind rerunnable import.

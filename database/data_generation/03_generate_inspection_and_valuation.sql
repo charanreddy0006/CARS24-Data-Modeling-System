@@ -43,6 +43,34 @@ SELECT n,CONCAT('D3SYN',RIGHT(CONCAT('000000000000',n),12)),
        CONCAT('D3-EMP-',RIGHT(CONCAT('0000',1+((n-1)%6)*4),4))
 FROM n OPTION(MAXRECURSION 100);
 
+IF (SELECT COUNT_BIG(*) FROM @I)<>62
+    THROW 51228,'Phase 03 expected inspection key cohort is not 62 rows.',1;
+IF EXISTS
+(
+ SELECT x.n
+ FROM @I x
+ LEFT JOIN vehicle.Vehicle v ON v.vin=x.vin
+ LEFT JOIN vehicle.VehicleSubmission s ON s.vehicle_id=v.vehicle_id AND s.submitted_at=DATEADD(hour,1,v.created_at)
+ GROUP BY x.n
+ HAVING COUNT(DISTINCT v.vehicle_id)<>1 OR COUNT_BIG(s.submission_id)<>1
+     OR MAX(CASE WHEN v.lifecycle_status='SUBMITTED' AND s.status='SUBMITTED' AND s.closed_at IS NULL
+                      AND s.outcome_reason IS NULL AND s.seller_customer_id=v.current_owner_customer_id THEN 1 ELSE 0 END)<>1
+)
+    THROW 51229,'A deterministic Phase 02 vehicle/submission key or expected lifecycle state is missing, duplicated, or mismatched.',1;
+
+IF EXISTS
+(
+ SELECT x.n
+ FROM @I x
+ LEFT JOIN core.Employee e ON e.employee_code=x.employee_code
+      AND e.active_from<=CONVERT(date,x.scheduled_at)
+      AND (e.active_to IS NULL OR e.active_to>=CONVERT(date,x.scheduled_at))
+ LEFT JOIN core.EmployeeRole er ON er.employee_id=e.employee_id AND er.role_code='INSPECTOR'
+      AND er.valid_from<=x.scheduled_at AND (er.valid_to IS NULL OR er.valid_to>x.scheduled_at)
+ GROUP BY x.n HAVING COUNT(DISTINCT e.employee_id)<>1 OR COUNT(DISTINCT er.employee_role_id)<>1
+)
+    THROW 51224,'A required Phase 01 inspector or active INSPECTOR role is missing or ambiguous.',1;
+
 DECLARE @Items TABLE(n int, item_code varchar(40),outcome_code varchar(20),note nvarchar(500),PRIMARY KEY(n,item_code));
 INSERT INTO @Items
 SELECT i.n,x.item_code,
@@ -57,7 +85,7 @@ IF EXISTS
 (
  SELECT 1 FROM @I x JOIN vehicle.Vehicle v ON v.vin=x.vin JOIN vehicle.VehicleSubmission s ON s.vehicle_id=v.vehicle_id AND s.submitted_at=DATEADD(hour,1,v.created_at)
  JOIN core.Employee e ON e.employee_code=x.employee_code JOIN inspection.Inspection z ON z.vehicle_id=v.vehicle_id AND z.scheduled_at=x.scheduled_at
- WHERE z.submission_id<>s.submission_id OR ISNULL(z.inspector_employee_id,-1)<>e.employee_id OR z.status<>x.status OR ISNULL(z.completed_at,'9999-12-31')<>ISNULL(x.completed_at,'9999-12-31')
+ WHERE ISNULL(z.submission_id,-1)<>s.submission_id OR ISNULL(z.inspector_employee_id,-1)<>e.employee_id OR z.status<>x.status OR ISNULL(z.completed_at,'9999-12-31')<>ISNULL(x.completed_at,'9999-12-31')
 ) THROW 51203,'Inspection event payload conflict. Phase 03 stopped.',1;
 IF EXISTS(SELECT i.vehicle_id,i.scheduled_at FROM inspection.Inspection i JOIN vehicle.Vehicle v ON v.vehicle_id=i.vehicle_id WHERE v.vin LIKE 'D3SYN%' GROUP BY i.vehicle_id,i.scheduled_at HAVING COUNT_BIG(*)>1)
     THROW 51214,'Ambiguous Day 3 inspection event key. Phase 03 stopped.',1;
@@ -87,8 +115,9 @@ IF EXISTS
  JOIN inspection.InspectionReport r ON r.inspection_id=z.inspection_id
  JOIN inspection.Defect actual ON actual.description=CONCAT(N'D3 synthetic defect ',RIGHT(CONCAT(N'0000',d.n),4),N'-',d.defect_no)
  JOIN inspection.InspectionItem it ON it.report_id=r.report_id AND it.item_code=d.item_code
- WHERE actual.report_id<>r.report_id OR actual.inspection_item_id<>it.inspection_item_id OR actual.category_code<>d.category OR actual.severity_code<>d.severity
-    OR actual.repair_estimate<>CONVERT(decimal(19,4),500+d.n*50+d.defect_no*250) OR actual.currency_code<>'INR'
+ WHERE actual.report_id<>r.report_id OR ISNULL(actual.inspection_item_id,-1)<>it.inspection_item_id OR actual.category_code<>d.category OR actual.severity_code<>d.severity
+    OR ISNULL(actual.repair_estimate,CONVERT(decimal(19,4),-1))<>CONVERT(decimal(19,4),500+d.n*50+d.defect_no*250)
+    OR ISNULL(actual.currency_code,'')<>'INR'
 ) THROW 51206,'Defect natural-key payload conflict. Phase 03 stopped.',1;
 IF EXISTS
 (
@@ -101,7 +130,7 @@ IF EXISTS
  SELECT 1 FROM @I x JOIN vehicle.Vehicle v ON v.vin=x.vin JOIN inspection.Inspection z ON z.vehicle_id=v.vehicle_id AND z.scheduled_at=x.scheduled_at
  JOIN inspection.VehicleValuation val ON val.vehicle_id=v.vehicle_id AND val.valued_at=DATEADD(day,1,z.scheduled_at)
  JOIN core.Employee e ON e.employee_code=x.employee_code
- WHERE val.assessor_employee_id<>e.employee_id OR val.report_id<>(SELECT r.report_id FROM inspection.InspectionReport r WHERE r.inspection_id=z.inspection_id)
+ WHERE val.assessor_employee_id<>e.employee_id OR ISNULL(val.report_id,-1)<>(SELECT r.report_id FROM inspection.InspectionReport r WHERE r.inspection_id=z.inspection_id)
     OR val.amount<>CONVERT(decimal(19,4),500000+(x.n%20)*25000) OR val.currency_code<>'INR'
     OR val.status<>CASE WHEN x.n%10=0 THEN 'REJECTED' WHEN x.n%7=0 THEN 'SUPERSEDED' ELSE 'APPROVED' END
     OR val.basis<>CONCAT(N'Day 3 synthetic valuation; inspection cohort ',RIGHT(CONCAT(N'0000',x.n),4))
@@ -136,16 +165,17 @@ IF EXISTS(SELECT val.vehicle_id,val.valued_at FROM inspection.VehicleValuation v
  ;WITH defects AS
  (
   SELECT i.n,1 AS defect_no,CASE WHEN i.n%3=0 THEN 'MECHANICAL' WHEN i.n%3=1 THEN 'COSMETIC' ELSE 'ELECTRICAL' END AS category,
-         CASE WHEN i.n%17=0 THEN 'HIGH' WHEN i.n%5=0 THEN 'MEDIUM' ELSE 'LOW' END AS severity
+         CASE WHEN i.n%17=0 THEN 'HIGH' WHEN i.n%5=0 THEN 'MEDIUM' ELSE 'LOW' END AS severity,
+         CASE WHEN i.n%2=0 THEN 'BODY' ELSE 'ENGINE' END AS item_code
   FROM @I i WHERE i.n<=57
-  UNION ALL SELECT i.n,2,CASE WHEN i.n%2=0 THEN 'SAFETY' ELSE 'COSMETIC' END,'MEDIUM' FROM @I i WHERE i.n<=42
+  UNION ALL SELECT i.n,2,CASE WHEN i.n%2=0 THEN 'SAFETY' ELSE 'COSMETIC' END,'MEDIUM','ENGINE' FROM @I i WHERE i.n<=42
  )
  INSERT INTO inspection.Defect(report_id,inspection_item_id,category_code,severity_code,description,repair_estimate,currency_code)
  SELECT r.report_id,it.inspection_item_id,d.category,d.severity,
         CONCAT(N'D3 synthetic defect ',RIGHT(CONCAT(N'0000',d.n),4),N'-',d.defect_no),CONVERT(decimal(19,4),500+d.n*50+d.defect_no*250),'INR'
  FROM defects d JOIN @I j ON j.n=d.n JOIN vehicle.Vehicle v ON v.vin=j.vin JOIN inspection.Inspection i ON i.vehicle_id=v.vehicle_id AND i.scheduled_at=j.scheduled_at
  JOIN inspection.InspectionReport r ON r.inspection_id=i.inspection_id
- JOIN inspection.InspectionItem it ON it.report_id=r.report_id AND it.item_code=CASE WHEN d.defect_no=1 THEN 'BODY' ELSE 'ENGINE' END
+ JOIN inspection.InspectionItem it ON it.report_id=r.report_id AND it.item_code=d.item_code
  WHERE NOT EXISTS(SELECT 1 FROM inspection.Defect z WITH(UPDLOCK,HOLDLOCK) WHERE z.report_id=r.report_id AND z.description=CONCAT(N'D3 synthetic defect ',RIGHT(CONCAT(N'0000',d.n),4),N'-',d.defect_no));
  SET @defectInserted=@@ROWCOUNT;
 
@@ -160,6 +190,12 @@ IF EXISTS(SELECT val.vehicle_id,val.valued_at FROM inspection.VehicleValuation v
 
  IF (SELECT COUNT_BIG(*) FROM inspection.Inspection i JOIN vehicle.Vehicle v ON v.vehicle_id=i.vehicle_id WHERE v.vin LIKE 'D3SYN%')<>62
     THROW 51209,'Post-insert inspection count failed.',1;
+ IF EXISTS
+ (
+  SELECT x.n FROM @I x JOIN vehicle.Vehicle v ON v.vin=x.vin
+  LEFT JOIN inspection.Inspection i ON i.vehicle_id=v.vehicle_id AND i.scheduled_at=x.scheduled_at
+  GROUP BY x.n HAVING COUNT_BIG(i.inspection_id)<>1
+ ) THROW 51225,'Expected inspection event does not resolve exactly once.',1;
  IF (SELECT COUNT_BIG(*) FROM inspection.InspectionReport r JOIN inspection.Inspection i ON i.inspection_id=r.inspection_id JOIN vehicle.Vehicle v ON v.vehicle_id=i.vehicle_id WHERE v.vin LIKE 'D3SYN%')<>57
     THROW 51210,'Post-insert report count failed.',1;
  IF EXISTS(SELECT 1 FROM inspection.InspectionReport r JOIN inspection.Inspection i ON i.inspection_id=r.inspection_id WHERE i.status<>'COMPLETED')
@@ -170,15 +206,27 @@ IF EXISTS(SELECT val.vehicle_id,val.valued_at FROM inspection.VehicleValuation v
     THROW 51216,'Post-insert Day 3 checklist item count failed.',1;
  IF (SELECT COUNT_BIG(*) FROM inspection.Defect WHERE description LIKE N'D3 synthetic defect %')<>99
     THROW 51217,'Post-insert Day 3 defect count failed.',1;
+ IF EXISTS
+ (
+  SELECT description FROM inspection.Defect
+  WHERE description LIKE N'D3 synthetic defect %'
+  GROUP BY description HAVING COUNT_BIG(*)<>1
+ ) THROW 51226,'Synthetic defect event key does not resolve exactly once.',1;
  IF (SELECT COUNT_BIG(*) FROM inspection.VehicleValuation val JOIN vehicle.Vehicle v ON v.vehicle_id=val.vehicle_id WHERE v.vin LIKE 'D3SYN%')<>52
     THROW 51218,'Post-insert Day 3 valuation count failed.',1;
+ IF EXISTS
+ (
+  SELECT x.n FROM @I x JOIN vehicle.Vehicle v ON v.vin=x.vin
+  LEFT JOIN inspection.VehicleValuation val ON val.vehicle_id=v.vehicle_id AND val.valued_at=DATEADD(day,1,x.scheduled_at)
+  WHERE x.n<=52 GROUP BY x.n HAVING COUNT_BIG(val.valuation_id)<>1
+ ) THROW 51227,'Expected valuation event does not resolve exactly once.',1;
  IF EXISTS
  (
   SELECT 1 FROM @I x JOIN vehicle.Vehicle v ON v.vin=x.vin
   JOIN vehicle.VehicleSubmission s ON s.vehicle_id=v.vehicle_id AND s.submitted_at=DATEADD(hour,1,v.created_at)
   JOIN core.Employee e ON e.employee_code=x.employee_code
   LEFT JOIN inspection.Inspection i ON i.vehicle_id=v.vehicle_id AND i.scheduled_at=x.scheduled_at
-  WHERE i.inspection_id IS NULL OR i.submission_id<>s.submission_id OR i.inspector_employee_id<>e.employee_id
+  WHERE i.inspection_id IS NULL OR ISNULL(i.submission_id,-1)<>s.submission_id OR ISNULL(i.inspector_employee_id,-1)<>e.employee_id
      OR i.status<>x.status OR ISNULL(i.completed_at,'9999-12-31')<>ISNULL(x.completed_at,'9999-12-31')
  ) THROW 51219,'Complete inspection/submission payload reconciliation failed.',1;
  IF EXISTS
@@ -187,7 +235,7 @@ IF EXISTS(SELECT val.vehicle_id,val.valued_at FROM inspection.VehicleValuation v
   JOIN inspection.Inspection i ON i.vehicle_id=v.vehicle_id AND i.scheduled_at=x.scheduled_at
   LEFT JOIN inspection.InspectionReport r ON r.inspection_id=i.inspection_id
   WHERE (x.status='COMPLETED' AND (r.report_id IS NULL OR r.outcome_code<>CASE WHEN x.n%9=0 THEN 'FAIL' WHEN x.n%4=0 THEN 'CONDITIONAL' ELSE 'PASS' END
-      OR r.finalized_at<>DATEADD(minute,5,x.completed_at) OR ISNULL(r.summary,N'')<>CONCAT(N'Day 3 synthetic inspection report ',RIGHT(CONCAT(N'0000',x.n),4)))
+      OR r.finalized_at<>DATEADD(minute,5,x.completed_at) OR ISNULL(r.summary,N'')<>CONCAT(N'Day 3 synthetic inspection report ',RIGHT(CONCAT(N'0000',x.n),4))))
      OR (x.status<>'COMPLETED' AND r.report_id IS NOT NULL)
  ) THROW 51220,'Complete report payload/cardinality reconciliation failed.',1;
  IF EXISTS
@@ -201,28 +249,45 @@ IF EXISTS(SELECT val.vehicle_id,val.valued_at FROM inspection.VehicleValuation v
  IF EXISTS
  (
   SELECT expected.n,expected.defect_no
-  FROM (SELECT n,1 AS defect_no FROM @I WHERE n<=57 UNION ALL SELECT n,2 FROM @I WHERE n<=42) expected
+  FROM
+  (
+   SELECT i.n,1 AS defect_no,CASE WHEN i.n%3=0 THEN 'MECHANICAL' WHEN i.n%3=1 THEN 'COSMETIC' ELSE 'ELECTRICAL' END AS category,
+          CASE WHEN i.n%17=0 THEN 'HIGH' WHEN i.n%5=0 THEN 'MEDIUM' ELSE 'LOW' END AS severity,
+          CASE WHEN i.n%2=0 THEN 'BODY' ELSE 'ENGINE' END AS item_code
+   FROM @I i WHERE i.n<=57
+   UNION ALL SELECT i.n,2,CASE WHEN i.n%2=0 THEN 'SAFETY' ELSE 'COSMETIC' END,'MEDIUM','ENGINE' FROM @I i WHERE i.n<=42
+  ) expected
   JOIN @I x ON x.n=expected.n JOIN vehicle.Vehicle v ON v.vin=x.vin
   JOIN inspection.Inspection i ON i.vehicle_id=v.vehicle_id AND i.scheduled_at=x.scheduled_at
   JOIN inspection.InspectionReport r ON r.inspection_id=i.inspection_id
+  LEFT JOIN inspection.InspectionItem it ON it.report_id=r.report_id AND it.item_code=expected.item_code
   LEFT JOIN inspection.Defect d ON d.report_id=r.report_id AND d.description=CONCAT(N'D3 synthetic defect ',RIGHT(CONCAT(N'0000',expected.n),4),N'-',expected.defect_no)
-  WHERE d.defect_id IS NULL OR d.currency_code<>'INR' OR d.repair_estimate<>CONVERT(decimal(19,4),500+expected.n*50+expected.defect_no*250)
+  WHERE d.defect_id IS NULL OR it.inspection_item_id IS NULL
+     OR ISNULL(d.inspection_item_id,-1)<>it.inspection_item_id OR d.category_code<>expected.category OR d.severity_code<>expected.severity
+     OR ISNULL(d.currency_code,'')<>'INR'
+     OR ISNULL(d.repair_estimate,CONVERT(decimal(19,4),-1))<>CONVERT(decimal(19,4),500+expected.n*50+expected.defect_no*250)
  ) THROW 51222,'Exact defect event reconciliation failed.',1;
  IF EXISTS
  (
   SELECT 1 FROM @I x JOIN vehicle.Vehicle v ON v.vin=x.vin
+  LEFT JOIN inspection.Inspection i ON i.vehicle_id=v.vehicle_id AND i.scheduled_at=x.scheduled_at
+  LEFT JOIN inspection.InspectionReport r ON r.inspection_id=i.inspection_id
+  LEFT JOIN core.Employee e ON e.employee_code=x.employee_code
   LEFT JOIN inspection.VehicleValuation z ON z.vehicle_id=v.vehicle_id AND z.valued_at=DATEADD(day,1,x.scheduled_at)
-  WHERE x.n<=52 AND (z.valuation_id IS NULL OR z.amount<>CONVERT(decimal(19,4),500000+(x.n%20)*25000)
-     OR z.currency_code<>'INR' OR z.status<>CASE WHEN x.n%10=0 THEN 'REJECTED' WHEN x.n%7=0 THEN 'SUPERSEDED' ELSE 'APPROVED' END)
+  WHERE x.n<=52 AND (z.valuation_id IS NULL OR r.report_id IS NULL OR e.employee_id IS NULL
+     OR ISNULL(z.report_id,-1)<>r.report_id OR z.assessor_employee_id<>e.employee_id
+     OR z.amount<>CONVERT(decimal(19,4),500000+(x.n%20)*25000) OR z.currency_code<>'INR'
+     OR z.basis<>CONCAT(N'Day 3 synthetic valuation; inspection cohort ',RIGHT(CONCAT(N'0000',x.n),4))
+     OR z.status<>CASE WHEN x.n%10=0 THEN 'REJECTED' WHEN x.n%7=0 THEN 'SUPERSEDED' ELSE 'APPROVED' END)
  ) THROW 51223,'Complete valuation event reconciliation failed.',1;
 
  COMMIT TRANSACTION;
  SELECT N'03 Inspection and valuation' AS phase_name,DB_NAME() AS target_database,N'COMMITTED' AS status,
-        62 AS expected_inspections,@inspectionInserted AS inspections_inserted,62-@inspectionInserted AS exact_match_skipped,
-        57 AS expected_reports,@reportInserted AS reports_inserted,57-@reportInserted AS exact_match_skipped,
-        411 AS expected_checklist_items,@itemInserted AS checklist_items_inserted,411-@itemInserted AS exact_match_skipped,
-        99 AS expected_defects,@defectInserted AS defects_inserted,99-@defectInserted AS exact_match_skipped,
-        52 AS expected_valuations,@valuationInserted AS valuations_inserted,52-@valuationInserted AS exact_match_skipped,
+        62 AS expected_inspections,@inspectionInserted AS inspections_inserted,62-@inspectionInserted AS inspections_exact_match_skipped,
+        57 AS expected_reports,@reportInserted AS reports_inserted,57-@reportInserted AS reports_exact_match_skipped,
+        411 AS expected_checklist_items,@itemInserted AS checklist_items_inserted,411-@itemInserted AS checklist_items_exact_match_skipped,
+        99 AS expected_defects,@defectInserted AS defects_inserted,99-@defectInserted AS defects_exact_match_skipped,
+        52 AS expected_valuations,@valuationInserted AS valuations_inserted,52-@valuationInserted AS valuations_exact_match_skipped,
         N'PASS' AS validation_result,N'Phase 04 permitted after reviewing counts and zero conflicts.' AS next_phase;
 END TRY
 BEGIN CATCH

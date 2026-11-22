@@ -1,6 +1,6 @@
 # Day 3 Synthetic Operational Data Generation Plan
 
-> **Runtime status update (2026-11-21):** Pre-generation checks passed. Phases 01 and 02 have since been executed and committed with PASS results; Phases 03-06 and the independent validator have not been executed. The plan and historical review notes below describe the design/review state at their respective update times, not the current execution status. See `docs/24_day3_synthetic_generation_execution_report.md` and `docs/26_day3_completion_report.md` for verified runtime progress.
+> **Runtime status update (2026-11-22):** Pre-generation checks passed. Phases 01-03 have since been executed and committed with PASS results; Phases 04-06 and the independent validator have not been executed. The five Phase 03 family counts sum to 681; its script reports each family separately and has no aggregate inserted-total field. The earlier 721 figure was an erroneous aggregate in the supplied execution summary. The plan and historical review notes below describe the design/review state at their respective update times, not the current execution status. See `docs/24_day3_synthetic_generation_execution_report.md` and `docs/26_day3_completion_report.md` for verified runtime progress.
 
 ## Objective
 

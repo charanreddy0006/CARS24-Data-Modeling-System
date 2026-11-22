@@ -1,6 +1,6 @@
 # Day 3 Final Independent Code Review
 
-> **Runtime status update (2026-11-21):** The decision and evidence below describe the static review snapshot. The operator subsequently ran pre-generation checks successfully and committed Phases 01 and 02 with PASS results. Phases 03-06 and the independent final validator remain unexecuted; this review does not certify those runtime results. See `docs/24_day3_synthetic_generation_execution_report.md` and `docs/26_day3_completion_report.md`.
+> **Runtime status update (2026-11-22):** The decision and evidence below describe the static review snapshot. The operator subsequently reports pre-generation checks PASS and Phases 01-03 COMMITTED / PASS, with Phase 03 component counts and relationship checks independently verified. The component sum is 681; its script has no aggregate inserted-total field, and the earlier 721 figure was an erroneous aggregate in the supplied execution summary. Phases 04-06 and the independent final validator remain unexecuted; this review does not certify those runtime results. See `docs/24_day3_synthetic_generation_execution_report.md` and `docs/26_day3_completion_report.md`.
 
 **Review date:** 2026-11-21
 **Decision at review time:** **BLOCKED**
