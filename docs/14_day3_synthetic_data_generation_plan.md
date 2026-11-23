@@ -1,6 +1,6 @@
 # Day 3 Synthetic Operational Data Generation Plan
 
-> **Runtime status update (2026-11-22):** Pre-generation checks passed. Phases 01-03 have since been executed and committed with PASS results; Phases 04-06 and the independent validator have not been executed. The five Phase 03 family counts sum to 681; its script reports each family separately and has no aggregate inserted-total field. The earlier 721 figure was an erroneous aggregate in the supplied execution summary. The plan and historical review notes below describe the design/review state at their respective update times, not the current execution status. See `docs/24_day3_synthetic_generation_execution_report.md` and `docs/26_day3_completion_report.md` for verified runtime progress.
+> **Runtime status update (2026-11-22):** Pre-generation checks passed. Phases 01-04 have since been executed and committed with PASS results. Phase 04 inserted 49 offers, 34 agreements, 31 acquisitions, 31 inventory positions, and 54 movement rows (199 total); its independent SELECT-only verifier returned 12 checks with failure_count 0. Phases 05-06 and the independent final validator have not been executed. The five Phase 03 family counts sum to 681; the earlier 721 figure was an erroneous aggregate in the supplied execution summary. Historical plan and review notes below describe their respective snapshots. See `docs/24_day3_synthetic_generation_execution_report.md` and `docs/26_day3_completion_report.md` for current progress.
 
 ## Objective
 

@@ -1,6 +1,6 @@
 # SQL Server Local Connectivity Resolution
 
-> **Later runtime update (2026-11-22):** The operator subsequently connected from normal Windows CMD under `chakri\chara` using Shared Memory (`sqlcmd -S "lpc:.\SQLEXPRESS" -E -C`) and completed the pre-generation checks and Phases 01-03 successfully. Earlier Codex-shell failures below were environment/account-specific and are not the current execution status. Phases 04-06 and the independent validator have not been run.
+> **Later runtime update (2026-11-22):** The operator subsequently connected from normal Windows CMD under `chakri\chara` using Shared Memory (`sqlcmd -S "lpc:.\SQLEXPRESS" -E -C`) and completed the pre-generation checks and Phases 01-03 successfully. Earlier Codex-shell failures below were environment/account-specific and are not the current execution status. The operator separately reports Phase 04 COMMITTED / PASS with 12 independent zero-failure read-only checks; its connection method was not specified here. Phases 05-06 and the independent validator have not been run.
 
 **Date:** 2026-11-21
 **Outcome:** Earlier Codex-environment connection attempts failed; a later normal Windows CMD connection succeeded for Phase 01/02 execution.

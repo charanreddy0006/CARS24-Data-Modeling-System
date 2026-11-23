@@ -52,29 +52,31 @@ FROM @L l JOIN (VALUES(1),(2),(3),(4)) o(display_order) ON o.display_order<=CASE
 DECLARE @E TABLE(n int PRIMARY KEY,listing_n int,customer_n int,received_at datetime2(0),channel varchar(20),status varchar(20),message_reference nvarchar(300));
 ;WITH n AS(SELECT 1 AS n UNION ALL SELECT n+1 FROM n WHERE n<99)
 INSERT INTO @E
-SELECT n,((n-1)%33)+1,((n-1)%97)+1,
-       DATEADD(hour,2,DATEADD(day,1,DATEADD(day,CASE WHEN ((n-1)%33)+1<=31 THEN 5 ELSE 20 END,
-         (SELECT inv.since_at FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id WHERE l.n=((n-1)%33)+1)))),
-       CASE n%5 WHEN 0 THEN 'WEB' WHEN 1 THEN 'PHONE' WHEN 2 THEN 'BRANCH' WHEN 3 THEN 'PARTNER' ELSE 'OTHER' END,
-       CASE n%4 WHEN 0 THEN 'OPEN' WHEN 1 THEN 'IN_PROGRESS' WHEN 2 THEN 'RESOLVED' ELSE 'CLOSED' END,
-       CONCAT(N'D3-ENQ-',RIGHT(CONCAT(N'0000',n),4))
-FROM n OPTION(MAXRECURSION 120);
+SELECT enquiryOrdinal.n,((enquiryOrdinal.n-1)%33)+1,((enquiryOrdinal.n-1)%97)+1,
+       DATEADD(hour,2,DATEADD(day,1,sourceListing.listed_at)),
+       CASE enquiryOrdinal.n%5 WHEN 0 THEN 'WEB' WHEN 1 THEN 'PHONE' WHEN 2 THEN 'BRANCH' WHEN 3 THEN 'PARTNER' ELSE 'OTHER' END,
+       CASE enquiryOrdinal.n%4 WHEN 0 THEN 'OPEN' WHEN 1 THEN 'IN_PROGRESS' WHEN 2 THEN 'RESOLVED' ELSE 'CLOSED' END,
+       CONCAT(N'D3-ENQ-',RIGHT(CONCAT(N'0000',enquiryOrdinal.n),4))
+FROM n AS enquiryOrdinal
+JOIN @L AS sourceListing ON sourceListing.n=((enquiryOrdinal.n-1)%33)+1 OPTION(MAXRECURSION 120);
 
 DECLARE @R TABLE(n int PRIMARY KEY,listing_n int,customer_n int,created_at datetime2(0),expires_at datetime2(0),status varchar(20),released_at datetime2(0) NULL);
 ;WITH n AS(SELECT 1 AS n UNION ALL SELECT n+1 FROM n WHERE n<24)
 INSERT INTO @R
-SELECT n,n+3,CASE WHEN n<=7 THEN 80+n WHEN n<=13 THEN 82+n ELSE 70+n END,
-       CASE WHEN n<=7 THEN DATEADD(hour,n,CONVERT(datetime2(0),'2026-10-30T09:00:00'))
-            WHEN n<=13 THEN DATEADD(day,40,DATEADD(day,5,(SELECT inv.since_at FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id WHERE l.n=n+3)))
-            ELSE DATEADD(day,5,DATEADD(day,5,(SELECT inv.since_at FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id WHERE l.n=n+3))) END,
-       CASE WHEN n<=7 THEN DATEADD(day,3,DATEADD(hour,n,CONVERT(datetime2(0),'2026-10-30T09:00:00')))
-            WHEN n<=13 THEN DATEADD(day,3,DATEADD(day,40,DATEADD(day,5,(SELECT inv.since_at FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id WHERE l.n=n+3))))
-            ELSE DATEADD(day,3,DATEADD(day,5,DATEADD(day,5,(SELECT inv.since_at FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id WHERE l.n=n+3)))) END,
-       CASE WHEN n<=7 THEN 'ACTIVE' WHEN n<=13 THEN 'CONVERTED' WHEN n<=18 THEN 'RELEASED' ELSE 'EXPIRED' END,
-       CASE WHEN n<=7 THEN NULL WHEN n<=13 THEN DATEADD(minute,10,DATEADD(day,40,DATEADD(day,5,(SELECT inv.since_at FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id WHERE l.n=n+3))))
-            WHEN n<=18 THEN DATEADD(day,2,DATEADD(day,5,DATEADD(day,5,(SELECT inv.since_at FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id WHERE l.n=n+3))))
-            ELSE DATEADD(day,3,DATEADD(day,5,DATEADD(day,5,(SELECT inv.since_at FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id WHERE l.n=n+3)))) END
-FROM n OPTION(MAXRECURSION 100);
+SELECT reservationOrdinal.n,reservationOrdinal.n+3,
+       CASE WHEN reservationOrdinal.n<=7 THEN 80+reservationOrdinal.n WHEN reservationOrdinal.n<=13 THEN 82+reservationOrdinal.n ELSE 70+reservationOrdinal.n END,
+       CASE WHEN reservationOrdinal.n<=7 THEN DATEADD(hour,reservationOrdinal.n,CONVERT(datetime2(0),'2026-10-30T09:00:00'))
+            WHEN reservationOrdinal.n<=13 THEN DATEADD(day,40,DATEADD(day,5,DATEADD(day,-5,sourceListing.listed_at)))
+            ELSE DATEADD(day,5,DATEADD(day,5,DATEADD(day,-5,sourceListing.listed_at))) END,
+       CASE WHEN reservationOrdinal.n<=7 THEN DATEADD(day,3,DATEADD(hour,reservationOrdinal.n,CONVERT(datetime2(0),'2026-10-30T09:00:00')))
+            WHEN reservationOrdinal.n<=13 THEN DATEADD(day,3,DATEADD(day,40,DATEADD(day,5,DATEADD(day,-5,sourceListing.listed_at))))
+            ELSE DATEADD(day,3,DATEADD(day,5,DATEADD(day,5,DATEADD(day,-5,sourceListing.listed_at)))) END,
+       CASE WHEN reservationOrdinal.n<=7 THEN 'ACTIVE' WHEN reservationOrdinal.n<=13 THEN 'CONVERTED' WHEN reservationOrdinal.n<=18 THEN 'RELEASED' ELSE 'EXPIRED' END,
+       CASE WHEN reservationOrdinal.n<=7 THEN NULL WHEN reservationOrdinal.n<=13 THEN DATEADD(minute,10,DATEADD(day,40,DATEADD(day,5,DATEADD(day,-5,sourceListing.listed_at))))
+            WHEN reservationOrdinal.n<=18 THEN DATEADD(day,2,DATEADD(day,5,DATEADD(day,5,DATEADD(day,-5,sourceListing.listed_at))))
+            ELSE DATEADD(day,3,DATEADD(day,5,DATEADD(day,5,DATEADD(day,-5,sourceListing.listed_at)))) END
+FROM n AS reservationOrdinal
+JOIN @L AS sourceListing ON sourceListing.n=reservationOrdinal.n+3 OPTION(MAXRECURSION 100);
 
 IF EXISTS(SELECT 1 FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id JOIN marketplace.VehicleListing x ON x.vehicle_id=v.vehicle_id AND x.listed_at=l.listed_at WHERE x.branch_id<>inv.branch_id OR ISNULL(x.closed_at,'9999-12-31')<>ISNULL(l.closed_at,'9999-12-31') OR x.status<>l.status OR x.asking_price<>l.asking_price OR x.currency_code<>'INR' OR ISNULL(x.description,N'')<>CONCAT(N'Day 3 synthetic listing ',RIGHT(CONCAT(N'0000',l.n),4)))
     THROW 51402,'Listing natural-key payload conflict. Phase 05 stopped.',1;
@@ -175,7 +177,7 @@ IF EXISTS
     THROW 51407,'Multiple active Day 3 listings exist for one vehicle.',1;
  IF EXISTS(SELECT 1 FROM marketplace.VehicleReservation r JOIN marketplace.VehicleListing l ON l.listing_id=r.listing_id JOIN vehicle.Vehicle v ON v.vehicle_id=l.vehicle_id WHERE r.status='ACTIVE' AND v.vin LIKE 'D3SYN%' GROUP BY v.vehicle_id HAVING COUNT_BIG(*)>1)
     THROW 51408,'Multiple active Day 3 reservations exist across listing history.',1;
- IF EXISTS(SELECT 1 FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN marketplace.VehicleListing x ON x.vehicle_id=v.vehicle_id AND x.listed_at=l.listed_at WHERE x.branch_id<>(SELECT branch_id FROM inventory.Inventory WHERE vehicle_id=v.vehicle_id))
+ IF EXISTS(SELECT 1 FROM @L l JOIN vehicle.Vehicle v ON v.vin=CONCAT('D3SYN',RIGHT(CONCAT('000000000000',l.vehicle_n),12)) JOIN inventory.Inventory inv ON inv.vehicle_id=v.vehicle_id JOIN marketplace.VehicleListing x ON x.vehicle_id=v.vehicle_id AND x.listed_at=l.listed_at WHERE x.branch_id<>inv.branch_id)
     THROW 51409,'Listing branch does not match the current inventory branch.',1;
  IF (SELECT COUNT_BIG(*) FROM marketplace.VehicleListing l JOIN vehicle.Vehicle v ON v.vehicle_id=l.vehicle_id WHERE v.vin LIKE 'D3SYN%' AND l.description LIKE N'Day 3 synthetic listing %')<>34
     THROW 51416,'Exact Day 3 listing cohort count failed.',1;
@@ -201,7 +203,7 @@ IF EXISTS
   JOIN core.Customer c ON c.display_name=CONCAT(N'D3 Synthetic Customer ',RIGHT(CONCAT(N'0000',x.customer_n),4))
   JOIN core.Employee e ON e.employee_code='D3-EMP-0002'
   LEFT JOIN marketplace.CustomerEnquiry q ON q.message_reference=x.message_reference
-  WHERE q.enquiry_id IS NULL OR q.listing_id<>l.listing_id OR q.customer_id<>c.customer_id OR q.assigned_employee_id<>e.employee_id
+  WHERE q.enquiry_id IS NULL OR q.listing_id<>l.listing_id OR q.customer_id<>c.customer_id OR q.assigned_employee_id IS NULL OR q.assigned_employee_id<>e.employee_id
      OR q.channel_code<>x.channel OR q.received_at<>x.received_at OR q.status<>x.status
  ) THROW 51421,'Complete enquiry payload reconciliation failed.',1;
  IF EXISTS
@@ -228,10 +230,10 @@ IF EXISTS
     THROW 51427,'Listing branch does not match its inventory position.',1;
  COMMIT TRANSACTION;
  SELECT N'05 Marketplace activity' AS phase_name,DB_NAME() AS target_database,N'COMMITTED' AS status,
-        34 AS expected_listings,@listingInserted AS listings_inserted,34-@listingInserted AS exact_match_skipped,
-        119 AS expected_images,@imageInserted AS images_inserted,119-@imageInserted AS exact_match_skipped,
-        99 AS expected_enquiries,@enquiryInserted AS enquiries_inserted,99-@enquiryInserted AS exact_match_skipped,
-        24 AS expected_reservations,@reservationInserted AS reservations_inserted,24-@reservationInserted AS exact_match_skipped,
+        34 AS expected_listings,@listingInserted AS listings_inserted,34-@listingInserted AS listings_exact_match_skipped,
+        119 AS expected_images,@imageInserted AS images_inserted,119-@imageInserted AS images_exact_match_skipped,
+        99 AS expected_enquiries,@enquiryInserted AS enquiries_inserted,99-@enquiryInserted AS enquiries_exact_match_skipped,
+        24 AS expected_reservations,@reservationInserted AS reservations_inserted,24-@reservationInserted AS reservations_exact_match_skipped,
         N'PASS' AS validation_result,N'Phase 06 permitted after reviewing counts and zero conflicts.' AS next_phase;
 END TRY
 BEGIN CATCH

@@ -120,7 +120,7 @@ IF EXISTS
  JOIN core.Employee staff ON staff.employee_code='D3-EMP-0011'
  JOIN inventory.InventoryMovement m ON m.inventory_id=inv.inventory_id AND m.occurred_at=inv.since_at
  WHERE x.n<=31 AND (m.movement_type<>'RECEIPT' OR m.from_branch_id IS NOT NULL OR m.from_location_code IS NOT NULL
-    OR m.to_branch_id<>initialBranch.branch_id OR m.to_location_code<>'D3-YARD-A' OR m.employee_id<>staff.employee_id OR m.reason<>N'Day 3 synthetic acquisition receipt')
+    OR m.to_branch_id<>initialBranch.branch_id OR m.to_location_code<>'D3-YARD-A' OR m.employee_id IS NULL OR m.employee_id<>staff.employee_id OR m.reason<>N'Day 3 synthetic acquisition receipt')
 ) THROW 51312,'Inventory receipt event payload conflict. Phase 04 stopped.',1;
 IF EXISTS
 (
@@ -130,7 +130,7 @@ IF EXISTS
  JOIN core.Employee staff ON staff.employee_code='D3-EMP-0011'
  JOIN inventory.InventoryMovement m ON m.inventory_id=inv.inventory_id AND m.occurred_at=DATEADD(day,2,inv.since_at)
  WHERE x.n<=23 AND (m.movement_type<>'TRANSFER' OR m.from_branch_id<>initialBranch.branch_id OR m.from_location_code<>'D3-YARD-A'
-    OR m.to_branch_id<>dest.branch_id OR m.to_location_code<>'D3-YARD-B' OR m.employee_id<>staff.employee_id OR m.reason<>N'Day 3 synthetic inter-branch transfer')
+    OR m.to_branch_id<>dest.branch_id OR m.to_location_code<>'D3-YARD-B' OR m.employee_id IS NULL OR m.employee_id<>staff.employee_id OR m.reason<>N'Day 3 synthetic inter-branch transfer')
 ) THROW 51313,'Inventory transfer event payload conflict. Phase 04 stopped.',1;
 
  /* The package lock and transaction were acquired before mutable prechecks. */
@@ -219,11 +219,11 @@ IF EXISTS
 
  COMMIT TRANSACTION;
  SELECT N'04 Acquisition and inventory' AS phase_name,DB_NAME() AS target_database,N'COMMITTED' AS status,
-        49 AS expected_offers,@offersInserted AS offers_inserted,49-@offersInserted AS exact_match_skipped,
-        34 AS expected_agreements,@agreementsInserted AS agreements_inserted,34-@agreementsInserted AS exact_match_skipped,
-        31 AS expected_acquisitions,@acquisitionsInserted AS acquisitions_inserted,31-@acquisitionsInserted AS exact_match_skipped,
-        31 AS expected_inventory_positions,@inventoryInserted AS inventory_inserted,31-@inventoryInserted AS exact_match_skipped,
-        54 AS expected_movement_rows,@movementInserted AS movement_rows_inserted,54-@movementInserted AS exact_match_skipped,
+        49 AS expected_offers,@offersInserted AS offers_inserted,49-@offersInserted AS offers_exact_match_skipped,
+        34 AS expected_agreements,@agreementsInserted AS agreements_inserted,34-@agreementsInserted AS agreements_exact_match_skipped,
+        31 AS expected_acquisitions,@acquisitionsInserted AS acquisitions_inserted,31-@acquisitionsInserted AS acquisitions_exact_match_skipped,
+        31 AS expected_inventory_positions,@inventoryInserted AS inventory_inserted,31-@inventoryInserted AS inventory_exact_match_skipped,
+        54 AS expected_movement_rows,@movementInserted AS movement_rows_inserted,54-@movementInserted AS movement_rows_exact_match_skipped,
         N'PASS' AS validation_result,N'Phase 05 permitted after reviewing counts and zero conflicts.' AS next_phase;
 END TRY
 BEGIN CATCH
