@@ -324,9 +324,9 @@ INSERT @ValidationFailures VALUES(N'Independent Phase 05 reservation payload and
  (SELECT COUNT_BIG(*) FROM (SELECT l.n,r.customer_n,r.created_at,r.expires_at,r.status,r.released_at FROM @ExpectedReservations r JOIN @ExpectedListings l ON l.n=r.listing_n EXCEPT SELECT TRY_CONVERT(int,RIGHT(listing.description,4)),TRY_CONVERT(int,RIGHT(c.display_name,4)),r.created_at,r.expires_at,r.status,r.released_at FROM marketplace.VehicleReservation r JOIN marketplace.VehicleListing listing ON listing.listing_id=r.listing_id JOIN vehicle.Vehicle v ON v.vehicle_id=listing.vehicle_id JOIN core.Customer c ON c.customer_id=r.customer_id WHERE v.vin LIKE 'D3SYN%') x)
  +(SELECT COUNT_BIG(*) FROM (SELECT TRY_CONVERT(int,RIGHT(listing.description,4)),TRY_CONVERT(int,RIGHT(c.display_name,4)),r.created_at,r.expires_at,r.status,r.released_at FROM marketplace.VehicleReservation r JOIN marketplace.VehicleListing listing ON listing.listing_id=r.listing_id JOIN vehicle.Vehicle v ON v.vehicle_id=listing.vehicle_id JOIN core.Customer c ON c.customer_id=r.customer_id WHERE v.vin LIKE 'D3SYN%' EXCEPT SELECT l.n,r.customer_n,r.created_at,r.expires_at,r.status,r.released_at FROM @ExpectedReservations r JOIN @ExpectedListings l ON l.n=r.listing_n) x));
 DECLARE @ExpectedOrders TABLE(n int PRIMARY KEY,vehicle_n int,buyer_n int,reservation_n int NULL,created_at datetime2(0),status varchar(20),confirmed_at datetime2(0) NULL,completed_at datetime2(0) NULL,cancelled_at datetime2(0) NULL,sale_price decimal(19,4));
-;WITH n AS(SELECT 1 AS n UNION ALL SELECT n+1 FROM n WHERE n<17), base AS
+;WITH n AS(SELECT 1 AS n UNION ALL SELECT n+1 FROM n WHERE n<18), base AS
 (SELECT n,n+10 vehicle_n,CASE WHEN n<=6 THEN 89+n WHEN n<=10 THEN 40+n ELSE 43+n END buyer_n,CASE WHEN n<=6 THEN n+7 END reservation_n,
- CASE WHEN n<=8 THEN 'COMPLETED' WHEN n IN(9,10,11,16,17) THEN 'CONFIRMED' WHEN n IN(12,13) THEN 'DRAFT' ELSE 'CANCELLED' END status FROM n)
+ CASE WHEN n<=8 THEN 'COMPLETED' WHEN n IN(9,10,11,12,16,17) THEN 'CONFIRMED' WHEN n=13 THEN 'DRAFT' ELSE 'CANCELLED' END status FROM n)
 INSERT @ExpectedOrders
 SELECT b.n,b.vehicle_n,b.buyer_n,b.reservation_n,CASE WHEN b.n<=6 THEN DATEADD(minute,15,DATEADD(day,40,l.listed_at)) ELSE DATEADD(day,45,l.listed_at) END,b.status,
  CASE WHEN b.status IN('CONFIRMED','COMPLETED') THEN CASE WHEN b.n<=6 THEN DATEADD(minute,15,DATEADD(day,40,l.listed_at)) ELSE DATEADD(day,45,l.listed_at) END END,
@@ -342,8 +342,8 @@ INSERT @ValidationFailures VALUES(N'Independent Phase 06 order-item payload and 
  +(SELECT COUNT_BIG(*) FROM (SELECT TRY_CONVERT(int,RIGHT(v.vin,12)),TRY_CONVERT(int,RIGHT(buyer.display_name,4)),i.sale_price,TRY_CONVERT(int,RIGHT(reservationListing.description,4))-3 FROM sales.SalesOrderItem i JOIN sales.SalesOrder o ON o.order_id=i.order_id JOIN core.Customer buyer ON buyer.customer_id=o.buyer_customer_id JOIN vehicle.Vehicle v ON v.vehicle_id=i.vehicle_id LEFT JOIN marketplace.VehicleReservation r ON r.reservation_id=i.reservation_id LEFT JOIN marketplace.VehicleListing reservationListing ON reservationListing.listing_id=r.listing_id WHERE buyer.display_name LIKE N'D3 Synthetic Customer %' AND o.created_at>='2026-02-01' EXCEPT SELECT vehicle_n,buyer_n,sale_price,reservation_n FROM @ExpectedOrders) x)
  +(SELECT COUNT_BIG(*) FROM sales.SalesOrderItem i JOIN sales.SalesOrder o ON o.order_id=i.order_id WHERE o.created_at>='2026-02-01' AND (i.currency_code<>'INR' OR (o.status IN('COMPLETED','CONFIRMED','DRAFT','CANCELLED') AND (SELECT COUNT_BIG(*) FROM sales.SalesOrderItem x WHERE x.order_id=o.order_id)<>1))));
 DECLARE @ExpectedPayments TABLE(n int PRIMARY KEY,order_n int,status varchar(20),amount decimal(19,4),initiated_at datetime2(0),settled_at datetime2(0) NULL,provider_reference varchar(100));
-;WITH n AS(SELECT 1 AS n UNION ALL SELECT n+1 FROM n WHERE n<25), mapping AS
-(SELECT n,CASE WHEN n<=10 THEN (n+1)/2 WHEN n<=13 THEN n-5 WHEN n IN(14,15) THEN 9 WHEN n=16 THEN 10 WHEN n=17 THEN 11 WHEN n=18 THEN 12 WHEN n IN(19,20) THEN 13 WHEN n=21 THEN 14 WHEN n=22 THEN 15 WHEN n=23 THEN 16 ELSE 17 END order_n FROM n)
+;WITH n AS(SELECT 1 AS n UNION ALL SELECT n+1 FROM n WHERE n<26), mapping AS
+(SELECT n,CASE WHEN n<=10 THEN (n+1)/2 WHEN n<=13 THEN n-5 WHEN n IN(14,15) THEN 9 WHEN n=16 THEN 10 WHEN n=17 THEN 11 WHEN n=18 THEN 12 WHEN n IN(19,20) THEN 13 WHEN n=21 THEN 14 WHEN n=22 THEN 15 WHEN n=23 THEN 16 WHEN n IN(24,25) THEN 17 ELSE 18 END order_n FROM n)
 INSERT @ExpectedPayments
 SELECT p.n,p.order_n,CASE WHEN p.n<=13 THEN 'SUCCEEDED' WHEN p.n IN(14,16,17,19,23,25) THEN 'PENDING' WHEN p.n=22 THEN 'REVERSED' ELSE 'FAILED' END,
  CASE WHEN p.n<=10 THEN o.sale_price/2 WHEN p.n<=13 THEN o.sale_price ELSE CONVERT(decimal(19,4),10000+p.n*500) END,
@@ -354,15 +354,36 @@ INSERT @ValidationFailures VALUES(N'Independent Phase 06 payment payload and ord
  +(SELECT COUNT_BIG(*) FROM (SELECT p.provider_reference,p.amount,p.status,p.initiated_at,p.settled_at,p.provider_code,p.payment_method_code FROM finance.Payment p WHERE p.provider_code='D3_SYNTHETIC' AND p.provider_reference LIKE 'D3-PAY-%' EXCEPT SELECT e.provider_reference,e.amount,e.status,e.initiated_at,e.settled_at,'D3_SYNTHETIC',CASE WHEN e.n%2=0 THEN 'CARD' ELSE 'UPI' END FROM @ExpectedPayments e) x)
  +(SELECT COUNT_BIG(*) FROM @ExpectedPayments e JOIN @ExpectedOrders o ON o.n=e.order_n LEFT JOIN sales.SalesOrder so ON so.created_at=o.created_at AND so.buyer_customer_id=(SELECT customer_id FROM core.Customer WHERE display_name=CONCAT(N'D3 Synthetic Customer ',RIGHT(CONCAT(N'0000',o.buyer_n),4))) LEFT JOIN finance.Payment p ON p.provider_code='D3_SYNTHETIC' AND p.provider_reference=e.provider_reference WHERE so.order_id IS NULL OR p.order_id<>so.order_id));
 DECLARE @ExpectedRefunds TABLE(n int PRIMARY KEY,payment_n int,amount decimal(19,4),status varchar(20),requested_at datetime2(0),settled_at datetime2(0) NULL,provider_reference varchar(100));
-INSERT @ExpectedRefunds VALUES(1,1,2500,'SUCCEEDED','2026-07-01T10:00:00','2026-07-01T10:05:00','D3-REF-0001'),(2,2,5000,'SUCCEEDED','2026-07-02T10:00:00','2026-07-02T10:05:00','D3-REF-0002'),(3,3,2000,'PENDING','2026-07-03T10:00:00',NULL,'D3-REF-0003'),(4,4,3000,'FAILED','2026-07-04T10:00:00',NULL,'D3-REF-0004');
+;WITH RefundPlan(n,payment_n,amount,status,days_after_settlement) AS
+(
+ SELECT refund_plan.n,refund_plan.payment_n,refund_plan.amount,refund_plan.status,refund_plan.days_after_settlement
+ FROM (VALUES
+  (1,1,CONVERT(decimal(19,4),2500),'SUCCEEDED',1),
+  (2,2,CONVERT(decimal(19,4),5000),'SUCCEEDED',2),
+  (3,3,CONVERT(decimal(19,4),2000),'PENDING',3),
+  (4,4,CONVERT(decimal(19,4),3000),'FAILED',4),
+  (5,13,CONVERT(decimal(19,4),1500),'SUCCEEDED',5)
+ ) AS refund_plan(n,payment_n,amount,status,days_after_settlement)
+)
+INSERT @ExpectedRefunds
+SELECT refund_plan.n,refund_plan.payment_n,refund_plan.amount,refund_plan.status,
+       DATEADD(day,refund_plan.days_after_settlement,p.settled_at),
+       CASE WHEN refund_plan.status='SUCCEEDED' THEN DATEADD(minute,5,DATEADD(day,refund_plan.days_after_settlement,p.settled_at)) END,
+       CONCAT('D3-REF-',RIGHT(CONCAT('0000',refund_plan.n),4))
+FROM RefundPlan AS refund_plan
+JOIN @ExpectedPayments AS p ON p.n=refund_plan.payment_n;
 INSERT @ValidationFailures VALUES(N'Independent Phase 06 refund payload and payment relationship',
  (SELECT COUNT_BIG(*) FROM (SELECT e.provider_reference,e.amount,'INR' AS currency_code,e.status,e.requested_at,e.settled_at,p.provider_reference payment_ref FROM @ExpectedRefunds e JOIN @ExpectedPayments p ON p.n=e.payment_n EXCEPT SELECT r.provider_reference,r.amount,r.currency_code,r.status,r.requested_at,r.settled_at,p.provider_reference FROM finance.Refund r JOIN finance.Payment p ON p.payment_id=r.payment_id WHERE r.provider_reference LIKE 'D3-REF-%') x)
  +(SELECT COUNT_BIG(*) FROM (SELECT r.provider_reference,r.amount,r.currency_code,r.status,r.requested_at,r.settled_at,p.provider_reference FROM finance.Refund r JOIN finance.Payment p ON p.payment_id=r.payment_id WHERE r.provider_reference LIKE 'D3-REF-%' EXCEPT SELECT e.provider_reference,e.amount,'INR',e.status,e.requested_at,e.settled_at,p.provider_reference FROM @ExpectedRefunds e JOIN @ExpectedPayments p ON p.n=e.payment_n) x));
 DECLARE @ExpectedFulfillment TABLE(n int PRIMARY KEY,vehicle_n int,buyer_n int,transfer_status varchar(20),submitted_at datetime2(0),transfer_completed_at datetime2(0) NULL,delivery_status varchar(20),scheduled_at datetime2(0),delivery_completed_at datetime2(0) NULL,branch_code varchar(30),address_line1 nvarchar(200),transfer_reference varchar(100),delivery_reference varchar(100));
 INSERT @ExpectedFulfillment
-SELECT e.n,e.vehicle_n,e.buyer_n,CASE WHEN e.n<=8 THEN 'COMPLETED' WHEN e.n<=10 THEN 'IN_PROGRESS' ELSE 'SUBMITTED' END,DATEADD(day,1,e.created_at),CASE WHEN e.n<=8 THEN DATEADD(day,3,e.created_at) END,
- CASE WHEN e.n<=8 THEN 'COMPLETED' ELSE 'SCHEDULED' END,DATEADD(day,4,e.created_at),CASE WHEN e.n<=8 THEN DATEADD(hour,1,DATEADD(day,4,e.created_at)) END,l.branch_code,CONCAT(N'D3 Synthetic Address ',RIGHT(CONCAT(N'0000',e.buyer_n),4)),CONCAT('D3-TR-',RIGHT(CONCAT('0000',e.n),4)),CONCAT('D3-HAND-',RIGHT(CONCAT('0000',e.n),4))
-FROM @ExpectedOrders e JOIN @ExpectedListings l ON l.n=e.vehicle_n WHERE e.n<=11;
+SELECT e.n,e.vehicle_n,e.buyer_n,
+ CASE WHEN e.n<=8 THEN 'COMPLETED' WHEN e.n<=10 THEN 'IN_PROGRESS' WHEN e.n=11 THEN 'SUBMITTED' ELSE 'REJECTED' END,
+ DATEADD(day,1,e.created_at),CASE WHEN e.n<=8 THEN DATEADD(day,3,e.created_at) END,
+ CASE WHEN e.n<=8 THEN 'COMPLETED' WHEN e.n<=10 THEN 'SCHEDULED' WHEN e.n=11 THEN 'IN_TRANSIT' ELSE 'FAILED' END,
+ DATEADD(day,4,e.created_at),CASE WHEN e.n<=8 THEN DATEADD(hour,1,DATEADD(day,4,e.created_at)) END,
+ l.branch_code,CONCAT(N'D3 Synthetic Address ',RIGHT(CONCAT(N'0000',e.buyer_n),4)),CONCAT('D3-TR-',RIGHT(CONCAT('0000',e.n),4)),CONCAT('D3-HAND-',RIGHT(CONCAT('0000',e.n),4))
+FROM @ExpectedOrders e JOIN @ExpectedListings l ON l.n=e.vehicle_n WHERE e.n<=12;
 INSERT @ValidationFailures VALUES(N'Independent Phase 06 ownership-transfer payload and lineage',
  (SELECT COUNT_BIG(*) FROM (SELECT f.transfer_reference,f.transfer_status,f.submitted_at,f.transfer_completed_at,f.vehicle_n,f.buyer_n FROM @ExpectedFulfillment f EXCEPT SELECT t.authority_reference,t.status,t.submitted_at,t.completed_at,TRY_CONVERT(int,RIGHT(v.vin,12)),TRY_CONVERT(int,RIGHT(buyer.display_name,4)) FROM delivery.OwnershipTransfer t JOIN sales.SalesOrderItem i ON i.order_item_id=t.order_item_id JOIN sales.SalesOrder o ON o.order_id=i.order_id JOIN vehicle.Vehicle v ON v.vehicle_id=i.vehicle_id JOIN core.Customer buyer ON buyer.customer_id=o.buyer_customer_id WHERE t.authority_reference LIKE 'D3-TR-%') x)
  +(SELECT COUNT_BIG(*) FROM (SELECT t.authority_reference,t.status,t.submitted_at,t.completed_at,TRY_CONVERT(int,RIGHT(v.vin,12)),TRY_CONVERT(int,RIGHT(buyer.display_name,4)) FROM delivery.OwnershipTransfer t JOIN sales.SalesOrderItem i ON i.order_item_id=t.order_item_id JOIN sales.SalesOrder o ON o.order_id=i.order_id JOIN vehicle.Vehicle v ON v.vehicle_id=i.vehicle_id JOIN core.Customer buyer ON buyer.customer_id=o.buyer_customer_id WHERE t.authority_reference LIKE 'D3-TR-%' EXCEPT SELECT transfer_reference,transfer_status,submitted_at,transfer_completed_at,vehicle_n,buyer_n FROM @ExpectedFulfillment) x)
@@ -425,12 +446,12 @@ INSERT INTO @ValidationFailures VALUES(N'D3 marketplace cohorts differ',
  +(SELECT ABS(COUNT_BIG(*)-99) FROM marketplace.CustomerEnquiry WHERE message_reference LIKE N'D3-ENQ-%')
  +(SELECT ABS(COUNT_BIG(*)-24) FROM marketplace.VehicleReservation r JOIN marketplace.VehicleListing l ON l.listing_id=r.listing_id JOIN vehicle.Vehicle v ON v.vehicle_id=l.vehicle_id WHERE v.vin LIKE 'D3SYN%' AND r.created_at>='2026-02-01'));
 INSERT INTO @ValidationFailures VALUES(N'D3 sales/finance/delivery cohorts differ',
- (SELECT ABS(COUNT_BIG(*)-17) FROM sales.SalesOrder o JOIN core.Customer c ON c.customer_id=o.buyer_customer_id WHERE c.display_name LIKE N'D3 Synthetic Customer %' AND o.created_at>='2026-02-01')
- +(SELECT ABS(COUNT_BIG(*)-17) FROM sales.SalesOrderItem i JOIN sales.SalesOrder o ON o.order_id=i.order_id JOIN core.Customer c ON c.customer_id=o.buyer_customer_id WHERE c.display_name LIKE N'D3 Synthetic Customer %' AND o.created_at>='2026-02-01')
- +(SELECT ABS(COUNT_BIG(*)-25) FROM finance.Payment WHERE provider_code='D3_SYNTHETIC' AND provider_reference LIKE 'D3-PAY-%')
- +(SELECT ABS(COUNT_BIG(*)-4) FROM finance.Refund WHERE provider_reference LIKE 'D3-REF-%')
- +(SELECT ABS(COUNT_BIG(*)-11) FROM delivery.OwnershipTransfer WHERE authority_reference LIKE 'D3-TR-%')
- +(SELECT ABS(COUNT_BIG(*)-11) FROM delivery.VehicleDelivery WHERE handover_reference LIKE 'D3-HAND-%'));
+  (SELECT ABS(COUNT_BIG(*)-18) FROM sales.SalesOrder o JOIN core.Customer c ON c.customer_id=o.buyer_customer_id WHERE c.display_name LIKE N'D3 Synthetic Customer %' AND o.created_at>='2026-02-01')
+  +(SELECT ABS(COUNT_BIG(*)-18) FROM sales.SalesOrderItem i JOIN sales.SalesOrder o ON o.order_id=i.order_id JOIN core.Customer c ON c.customer_id=o.buyer_customer_id WHERE c.display_name LIKE N'D3 Synthetic Customer %' AND o.created_at>='2026-02-01')
+  +(SELECT ABS(COUNT_BIG(*)-26) FROM finance.Payment WHERE provider_code='D3_SYNTHETIC' AND provider_reference LIKE 'D3-PAY-%')
+  +(SELECT ABS(COUNT_BIG(*)-5) FROM finance.Refund WHERE provider_reference LIKE 'D3-REF-%')
+  +(SELECT ABS(COUNT_BIG(*)-12) FROM delivery.OwnershipTransfer WHERE authority_reference LIKE 'D3-TR-%')
+  +(SELECT ABS(COUNT_BIG(*)-12) FROM delivery.VehicleDelivery WHERE handover_reference LIKE 'D3-HAND-%'));
 INSERT INTO @ValidationFailures VALUES(N'Orphan or mismatched D3 defect/report items',
  (SELECT COUNT_BIG(*) FROM inspection.Defect d LEFT JOIN inspection.InspectionItem i ON i.inspection_item_id=d.inspection_item_id WHERE d.description LIKE N'D3 synthetic defect %' AND (i.inspection_item_id IS NULL OR d.report_id<>i.report_id)));
 INSERT INTO @ValidationFailures VALUES(N'D3 valuation vehicle/report mismatch',
