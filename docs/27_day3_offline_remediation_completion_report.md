@@ -1,6 +1,6 @@
 # Day 3 offline remediation completion report
 
-> **Later runtime update (2026-11-22):** The offline status below reflects the remediation task at that time. Since then, the operator reports pre-generation checks **PASS** and Phases 01-04 **COMMITTED / PASS**. Phase 03 counts and relationships were independently verified. Phase 04 inserted 199 records and its independent SELECT-only verifier returned 12 checks with failure_count 0. The Phase 03 family counts sum to 681; the earlier 721 figure was an erroneous aggregate in the supplied execution summary. The earlier failed Phase 02 attempt was verified rolled back. Phases 05-06 and the independent final validator remain unexecuted. Current completion status is tracked in `docs/26_day3_completion_report.md`.
+> **Later runtime update (2026-11-26):** This offline-remediation report records its historical source-only status. The operator now reports preflight and Phases 01-06 PASS, independent Phase 04/05/06 verifiers 12/12, 28/28, and 36/36 PASS, and the final validator PASS with zero failures. Day 3 is complete according to the supplied runtime evidence. Current phase and final results are tracked in `docs/24_day3_synthetic_generation_execution_report.md` through `docs/26_day3_completion_report.md`.
 
 **Date:** 2026-11-21
 **Status at time of offline remediation:** **CODE REMEDIATION IMPLEMENTED; DAY 3 REMAINED INCOMPLETE AND BLOCKED**

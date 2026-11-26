@@ -1,6 +1,6 @@
 # Day 3 Final Independent Code Review
 
-> **Runtime status update (2026-11-22):** The decision and evidence below describe the static review snapshot. The operator subsequently reports pre-generation checks PASS and Phases 01-04 COMMITTED / PASS. Phase 03 counts and relationships were independently verified; Phase 04's 12 read-only checks returned failure_count 0. The Phase 03 component sum is 681, and the earlier 721 figure was an erroneous aggregate in the supplied execution summary. Phases 05-06 and the independent final validator remain unexecuted; this static review does not certify those runtime results. See `docs/24_day3_synthetic_generation_execution_report.md` and `docs/26_day3_completion_report.md`.
+> **Later runtime status (2026-11-26):** The BLOCKED decision below records the static review at that time. The operator subsequently reports preflight, Phases 01-06, independent Phase 04/05/06 verifiers (12/12, 28/28, 36/36), and final cumulative validator all PASS; final failed-check and detected-failure counts were zero. Day 3 is complete based on that runtime evidence. The later execution does not rewrite the historical findings or claim this report was a fresh review of the final runtime session. See `docs/24_day3_synthetic_generation_execution_report.md` through `docs/26_day3_completion_report.md`.
 
 **Review date:** 2026-11-21
 **Decision at review time:** **BLOCKED**

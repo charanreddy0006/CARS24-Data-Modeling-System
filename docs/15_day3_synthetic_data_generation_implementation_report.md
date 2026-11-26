@@ -1,6 +1,6 @@
 # Day 3 synthetic operational data implementation report
 
-> **Runtime status update (2026-11-22):** The operator reports pre-generation checks PASS and Phases 01-04 COMMITTED / PASS. Phase 01 inserted 21 employees, 21 roles, 97 customers, 172 contacts, and 122 addresses. Phase 02 inserted 67 vehicles, 67 registrations, 67 ownership-history rows, and 67 submissions, with zero exact-match skips in each category; its earlier failed attempt was verified rolled back. Phase 03 inserted 62 inspections, 57 reports, 411 checklist items, 99 defects, and 52 valuations; its independent counts matched and three relationship checks returned failure_count 0. Phase 04 inserted 49 offers, 34 agreements, 31 acquisitions, 31 inventory positions, and 54 movements (199 total), with zero skips; all 12 checks in the independent SELECT-only verifier returned failure_count 0. The Phase 03 count total is 681; the earlier 721 figure was an erroneous aggregate. The initial Phase 03 syntax error was corrected before the successful run. Phases 05-06 and the independent final validator remain unexecuted. Static findings below are historical source-review evidence, not runtime claims. See `docs/24_day3_synthetic_generation_execution_report.md`.
+> **Runtime status update (2026-11-26):** The operator reports all phases 01-06 COMMITTED / PASS, Phase 04/05/06 independent verifiers 12/12, 28/28, and 36/36 PASS, and final cumulative validation PASS with zero failed checks and zero detected failures. Day 3 is complete. Phase counts and the cumulative validator result are detailed in `docs/24_day3_synthetic_generation_execution_report.md`, `docs/25_day3_final_validation_report.md`, and `docs/26_day3_completion_report.md`. Static findings and readiness statements below are historical snapshots, not current runtime claims.
 
 ## Outcome
 
@@ -47,11 +47,11 @@ Deterministic synthetic keys, exact-payload comparisons, transactions, `XACT_ABO
 
 ## Limitations and unresolved model gaps
 
-The DDL has no mileage/odometer field, normalized condition grade, or company-owner entity; company acquisition cannot be represented as a company ownership row without changing the model. Synthetic customer details and `.invalid` contact/image references are not real personal data. `DBCC CHECKCONSTRAINTS` is in the final read-only validator; no live integrity check was performed. The pre-generation checks and Phases 01-02 have since run successfully; the complete current database state and final integrity remain unverified until the independent validator runs after Phases 03-06.
+The DDL has no mileage/odometer field, normalized condition grade, or company-owner entity; company acquisition cannot be represented as a company ownership row without changing the model. Synthetic customer details and `.invalid` contact/image references are not real personal data. At the time this report was written, `DBCC CHECKCONSTRAINTS` had not been run. The operator later reports it completed without reported constraint violation rows during the final validator run; see the current runtime reports linked at the top of this document.
 
 ## Readiness statement
 
-At the time this implementation report was prepared, the package was ready for static review and user-controlled preflight. As of 2026-11-21, the preflight and Phases 01-02 have passed at runtime; the remaining phases and final validator are pending, so Day 3 is still incomplete.
+**Historical readiness statement (2026-11-21):** At that time, the package was ready for static review and user-controlled preflight; only the preflight and Phases 01-02 had passed. This status was superseded by the later phase executions and final validator PASS summarized at the top of this report.
 
 ## Completion remediation update (2026-11-20)
 

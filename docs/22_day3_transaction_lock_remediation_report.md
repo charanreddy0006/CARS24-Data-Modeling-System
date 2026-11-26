@@ -1,5 +1,7 @@
 # Day 3 Transaction and Lock Remediation Report
 
+> **Status note (2026-11-26):** The BLOCKED assessment below is historical. The operator later reports successful execution of all phases and independent verifiers, followed by final validator PASS with zero failures. Current operator-reported runtime status is consolidated in `docs/24_day3_synthetic_generation_execution_report.md` through `docs/26_day3_completion_report.md`.
+
 **Date:** 2026-11-20  
 **Scope:** Step 1 only — unified transaction and application-lock redesign.  
 **Readiness:** **DAY 3 REMAINS BLOCKED** pending subsequent independent review.

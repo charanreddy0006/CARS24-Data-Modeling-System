@@ -4,37 +4,37 @@ An educational used-car marketplace data model. This project does not describe C
 
 ## Project status
 
-| Day | Status | Evidence boundary |
+| Day | Status | Evidence |
 |---|---|---|
-| Day 1 | Complete | Logical model and requirements passed the documented cross-review in `docs/10_day1_validation_report.md`. |
-| Day 2 | Complete / checkpointed per project history | SQL Server implementation and fixture scripts are documented in `docs/12_day2_implementation_report.md` and `docs/13_day2_complete_sql_review_report.md`. |
-| Day 3 | **In progress** | Pre-generation checks and Phases 01-04 passed. Phases 05-06 and the independent final validator have not been executed; Day 3 is not complete. |
+| Day 1 | Complete | Requirements and logical model review: [Day 1 validation report](docs/10_day1_validation_report.md). |
+| Day 2 | Complete and checkpointed | SQL Server schema, constraints, indexes, and fixtures: [Day 2 implementation report](docs/12_day2_implementation_report.md). |
+| Day 3 | **COMPLETE** | Operator-reported runtime PASS for preflight, all six generation phases, independent verification where packaged, and final validator. See [completion report](docs/26_day3_completion_report.md). |
 
-## Day 3 runtime progress (2026-11-22)
+## Day 3 generated cohorts
 
-Verified against `CARS24DataModelingSystem`:
+| Phase | Generated records | Runtime result |
+|---|---|---|
+| 01 — Customers and staff | 21 employees, 21 roles, 97 customers, 172 contacts, 122 addresses | COMMITTED / PASS |
+| 02 — Catalog and intake | 67 vehicles, 67 registrations, 67 ownership-history rows, 67 submissions | COMMITTED / PASS; zero exact-match skips |
+| 03 — Inspection and valuation | 62 inspections, 57 reports, 411 checklist items, 99 defects, 52 valuations | COMMITTED / PASS; independent counts and three relationship checks passed |
+| 04 — Acquisition and inventory | 49 offers, 34 agreements, 31 acquisitions, 31 inventory positions, 54 movements | COMMITTED / PASS; 12/12 independent checks passed |
+| 05 — Marketplace activity | 34 listings, 119 images, 99 enquiries, 24 reservations | COMMITTED / PASS; 28/28 independent checks passed |
+| 06 — Sales, finance, and delivery | 18 orders, 18 items, 26 payments, 5 refunds, 12 transfers, 12 deliveries, 8 sale-history rows, 8 dispatch movements | COMMITTED / PASS; 36/36 independent checks passed |
 
-- Pre-generation checks: **PASS**.
-- Phase 01 - Customers and staff: **COMMITTED / PASS**; 21 employees, 21 roles, 97 customers, 172 contacts, and 122 addresses.
-- Phase 02 - Catalog and vehicle intake: **COMMITTED / PASS**; 67 vehicles, 67 registrations, 67 ownership-history rows, and 67 submissions. Exact-match skips were zero in all four categories.
-- The earlier failed Phase 02 attempt was verified to have rolled back completely before the successful rerun.
-- Phase 03 - Inspection and valuation: **COMMITTED / PASS**; 62 inspections, 57 reports, 411 checklist items, 99 defects, and 52 valuations. Exact-match skips were zero. Independent read-only counts matched these five figures, and all three relationship checks returned failure_count 0.
-- The first Phase 03 attempt failed on a missing closing parenthesis in the completed-inspection report predicate. Read-only counts confirmed zero Phase 03 rows after that attempt; the predicate was corrected before the successful run.
-- Phase 04 - Acquisition and inventory: **COMMITTED / PASS**; 49 offers, 34 agreements, 31 acquisitions, 31 inventory positions, and 54 movement rows; zero exact-match skips. Total inserted: **199**.
-- The independent read-only Phase 04 verifier, `database/data_generation/11_verify_phase04_readonly.sql`, returned **PASS** for all 12 checks with `failure_count = 0`. The verifier contains SELECT statements only.
-- Phases 05-06: **not executed**.
-- Independent final validator: **not executed**.
+Phase 03's five reported family counts sum to **681**; the earlier 721 aggregate was an arithmetic/reporting error. Cohort figures above are Day 3 additions. They are distinct from cumulative database counts, which include Day 2 fixtures.
 
-The Phase 03 script reports inserted rows separately for each of its five families and does not emit an aggregate inserted-total field. Those verified family counts sum to **681**. The earlier figure of 721 was an erroneous aggregate in the supplied execution summary. The pending final validator means Day 3 is not complete.
+## Final database validation
 
-## Day 3 package
+The operator reports that `database/data_generation/10_validate_generated_data.sql` returned **PASS**, with **0 failed checks** and **0 detected failures**. The database was reported **ONLINE** at compatibility level **170**; `DBCC CHECKCONSTRAINTS` completed without reported violation rows. Reported cumulative counts matched the validator targets, including 70 vehicles, 100 customers, 25 employees, 50 offers, 35 agreements, 32 acquisitions, 32 inventory positions, 63 movements, 35 listings, 120 images, 100 enquiries, 25 reservations, 19 orders, 19 order items, 27 payments, 6 refunds, 13 ownership transfers, and 13 deliveries.
 
-The package contains a read-only preflight, six sequential generation phases, a read-only Phase 04 verification query, and a read-only independent validator under [`database/data_generation`](database/data_generation/README.md). Phase 05 is the next permitted generation phase; run later phases sequentially and stop on any failure. Run the independent final validator after all phases.
+These are operator-provided SQL Server runtime results. Codex did not connect to SQL Server or execute SQL. The validator covers its implemented checks; it is not a proof of every conceivable application rule.
 
-## SQL Server connection
+## Day 3 package and execution
 
-The reported successful Phase 01/02 execution used normal Windows CMD under `chakri\chara`, connecting to `chakri\SQLEXPRESS` with Shared Memory: `sqlcmd -S "lpc:.\SQLEXPRESS" -E -C`. Earlier Codex shell connection failures occurred under a different Windows account and did not prevent that normal-CMD execution. TCP Windows Authentication troubleshooting remains documented in `docs/29_sql_server_local_connectivity_resolution.md`.
+The package, phase order, prerequisites, reference CMD commands, and verification sequence are in [the Day 3 generation README](database/data_generation/README.md). The generation scripts are separate files: run preflight, phases 01–06 in order, each independent verifier after its phase, then the final validator. Stop on any command error or failed result. The existing database has already completed this sequence; these commands document reproducibility and are not a request to rerun generators.
+
+The operator previously verified local SQLCMD access from normal Windows CMD under `chakri\chara` using Shared Memory: `sqlcmd -S "lpc:.\SQLEXPRESS" -E -C`. The exact command used for the final validator run was not included with its result. Historical TCP/SSPI troubleshooting is in [the connectivity report](docs/29_sql_server_local_connectivity_resolution.md).
 
 ## Limitations and next milestone
 
-The Day 3 generated values are synthetic. The model has documented domain limitations, and the generated-data checks depend on the documented Day 2 baseline. The next milestone is controlled execution of Phases 05-06 followed by the independent final validator. Day 3 should be marked complete only after these items pass.
+The data is synthetic and depends on the documented Day 2 baseline. `DBCC CHECKCONSTRAINTS` and application validations cover declared and implemented rules only. The model has no odometer/mileage field or company-owner entity, so those concepts are not represented as normalized data. Day 3 is complete; the next planned milestone is Day 4 planning. Day 4 work was not started in this update.

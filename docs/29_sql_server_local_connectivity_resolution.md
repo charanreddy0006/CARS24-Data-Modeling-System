@@ -1,6 +1,6 @@
 # SQL Server Local Connectivity Resolution
 
-> **Later runtime update (2026-11-22):** The operator subsequently connected from normal Windows CMD under `chakri\chara` using Shared Memory (`sqlcmd -S "lpc:.\SQLEXPRESS" -E -C`) and completed the pre-generation checks and Phases 01-03 successfully. Earlier Codex-shell failures below were environment/account-specific and are not the current execution status. The operator separately reports Phase 04 COMMITTED / PASS with 12 independent zero-failure read-only checks; its connection method was not specified here. Phases 05-06 and the independent validator have not been run.
+> **Later runtime update (2026-11-26):** The earlier troubleshooting below records a failed Codex-shell context, not the operator's eventual successful workflow. The operator reports preflight, all six phases, independent Phase 04/05/06 verifiers, and final validator completed successfully. Shared Memory via normal Windows CMD was previously verified for local SQLCMD operations; the exact command for the final validator invocation was not supplied. See `docs/24_day3_synthetic_generation_execution_report.md` through `docs/26_day3_completion_report.md` for current status.
 
 **Date:** 2026-11-21
 **Outcome:** Earlier Codex-environment connection attempts failed; a later normal Windows CMD connection succeeded for Phase 01/02 execution.
@@ -75,7 +75,7 @@ All connection attempts were local and used integrated authentication. The only 
 5. Verify that SQL Server listens only on `127.0.0.1:14330`. Then separately resolve the SSPI failure with the domain/SQL administrator: verify the service SPN for the actual service account and check for missing/duplicate SPNs or an unavailable Windows logon context. Do not change SPNs or bypass authentication as part of this report.
 6. Once an approved authenticated connection works, run the read-only identity query and confirm exact server, instance, login, current database, and target database state before any Day 3 preflight.
 
-Day 3 remains **INCOMPLETE and BLOCKED**. This report establishes the local configuration findings and the precise administrator action; it does not establish database connectivity or readiness.
+**Historical status at the time of the original connectivity investigation:** Day 3 was incomplete and blocked. This report's connection findings and administrator recommendations describe that snapshot; the operator later completed the Day 3 workflow, as stated in the runtime update at the top of this report and detailed in the current execution/completion reports.
 
 ## Follow-up recorded at time of the original diagnostics — 2026-11-21
 
@@ -88,4 +88,4 @@ The previous administrator troubleshooting recommendations remain applicable for
 
 ## Subsequent normal CMD runtime verification (2026-11-21)
 
-The operator later verified a successful SQLCMD connection from normal Windows CMD under `chakri\chara` to `chakri\SQLEXPRESS` using Shared Memory (`sqlcmd -S "lpc:.\SQLEXPRESS" -E -C`). The pre-generation checks passed, and Phases 01 and 02 committed with PASS results. The earlier Codex shell attempts ran under a different Windows account and their failures do not describe this successful connection. Phases 03-06 and the independent final validator have not been executed. Current progress and counts are recorded in `docs/23_day3_preflight_execution_report.md`, `docs/24_day3_synthetic_generation_execution_report.md`, and `docs/26_day3_completion_report.md`.
+**Runtime update at that time (2026-11-21):** The operator had verified a successful SQLCMD connection from normal Windows CMD under `chakri\chara` to `chakri\SQLEXPRESS` using Shared Memory (`sqlcmd -S "lpc:.\SQLEXPRESS" -E -C`). The pre-generation checks passed, and Phases 01 and 02 committed with PASS results. The earlier Codex shell attempts ran under a different Windows account. Phase 03-06 and final-validator status in this historical paragraph has since been superseded by the later runtime update at the top of this report and current reports `docs/24_day3_synthetic_generation_execution_report.md` through `docs/26_day3_completion_report.md`.
